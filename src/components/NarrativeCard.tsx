@@ -38,6 +38,12 @@ const NarrativeCard = ({ data }: { data: AssetData }) => {
         {data.narrative}
       </p>
 
+      {data.curiosityGap && (
+        <p className="mt-4 border-l-2 border-gold/40 pl-4 font-body text-sm italic leading-relaxed text-muted-foreground">
+          {data.curiosityGap}
+        </p>
+      )}
+
       <div className="mt-5 flex items-center gap-2 text-muted-foreground">
         <Clock className="h-3.5 w-3.5" />
         <span className="font-mono text-[11px]">{data.lastUpdate}</span>
