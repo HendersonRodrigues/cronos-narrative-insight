@@ -8,6 +8,7 @@ export interface AssetData {
   asset: Asset;
   title: string;
   narrative: string;
+  curiosityGap?: string;
   regime: MarketRegime;
   regimeColor: "risk-off" | "risk-on" | "caution";
   action: {
@@ -39,12 +40,12 @@ export const mockData: Record<Asset, AssetData> = {
     regime: "Risk-Off",
     regimeColor: "risk-off",
     action: {
-      title: "Posição Defensiva em Dividendos",
+      title: "Explorar Fundos Multimercado",
       description:
-        "Em cenários de Risk-Off, a estratégia recomendada é migrar para ativos geradores de caixa com dividend yield acima de 8%. Setores como utilities e bancos tradicionais oferecem proteção parcial contra volatilidade.",
+        "Explorar fundos multimercado com gestão ativa de duration via parceiros especializados. Em cenários de transição de ciclo, a gestão ativa pode capturar alpha significativo.",
       riskLevel: "moderado",
-      ctaLabel: "Ver Carteira Defensiva",
-      ctaUrl: "https://example.com/carteira-defensiva",
+      ctaLabel: "Explorar Fundos Multimercado",
+      ctaUrl: "https://example.com/fundos-multimercado",
     },
     timeline: [
       { year: "2008", label: "Crise Subprime", description: "IBOV caiu 41% no ano. Pânico global." },
