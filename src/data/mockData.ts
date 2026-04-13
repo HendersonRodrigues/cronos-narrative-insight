@@ -31,9 +31,11 @@ export interface TimelineEvent {
 export const mockData: Record<Asset, AssetData> = {
   IBOV: {
     asset: "IBOV",
-    title: "O Ibovespa Navega Entre a Euforia Fiscal e o Fantasma dos Juros Altos",
+    title: "IBOV a 128.500: Revivendo 2016 ou Apenas uma Miragem no Deserto?",
     narrative:
-      "O índice brasileiro opera em zona de tensão narrativa. De um lado, o fluxo estrangeiro retorna timidamente, atraído por valuations descontados em relação a pares emergentes. De outro, a curva de juros longa permanece pressionada, refletindo o ceticismo do mercado com a trajetória fiscal do governo. O IBOV encontra suporte técnico nos 128 mil pontos, mas a falta de catalisadores de curto prazo mantém o mercado em compasso de espera. A temporada de balanços do 1T25 será decisiva para definir a direção do próximo movimento.",
+      "Analisando os últimos 20 anos, o patamar atual do IBOV remete ao período pós-impeachment de 2016. O IBOV não apresentou dados da última semana, impossibilitando uma análise precisa, mas o contexto macro segue desafiador.",
+    curiosityGap:
+      "Em um cenário de Selic em queda, como se comportam os fundos multimercado...",
     regime: "Risk-Off",
     regimeColor: "risk-off",
     action: {
