@@ -3,9 +3,9 @@ import { BookOpen, Clock } from "lucide-react";
 import type { AssetData } from "@/data/mockData";
 
 const regimeStyles = {
-  "risk-off": { badge: "bg-risk-off text-risk-off border border-risk-off/30", dot: "bg-risk-off" },
-  "risk-on": { badge: "bg-risk-on text-risk-on border border-risk-on/30", dot: "bg-risk-on" },
-  caution: { badge: "bg-caution text-caution border border-caution/30", dot: "bg-caution" },
+  "risk-off": { badge: "bg-destructive/10 text-destructive border border-destructive/20", dot: "bg-destructive" },
+  "risk-on": { badge: "bg-green-500/10 text-green-400 border border-green-500/20", dot: "bg-green-500" },
+  caution: { badge: "bg-amber-500/10 text-amber-400 border border-amber-500/20", dot: "bg-amber-500" },
 } as const;
 
 const NarrativeCard = ({ data }: { data: AssetData }) => {
@@ -17,7 +17,7 @@ const NarrativeCard = ({ data }: { data: AssetData }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-xl border border-border bg-card p-5 md:p-8 glow-gold"
+      className="rounded-xl border border-border bg-card p-5 md:p-8"
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -30,16 +30,16 @@ const NarrativeCard = ({ data }: { data: AssetData }) => {
         </span>
       </div>
 
-      <h1 className="font-display text-xl md:text-2xl font-bold leading-tight text-foreground mb-5">
+      <h1 className="font-body text-xl md:text-2xl font-semibold leading-tight text-foreground mb-5">
         {data.title}
       </h1>
 
-      <p className="font-body text-sm md:text-base leading-relaxed text-secondary-foreground">
+      <p className="font-body text-sm md:text-base font-normal text-secondary-foreground" style={{ lineHeight: 1.7 }}>
         {data.narrative}
       </p>
 
       {data.curiosityGap && (
-        <p className="mt-4 border-l-2 border-gold/40 pl-4 font-body text-sm italic leading-relaxed text-muted-foreground">
+        <p className="mt-4 border-l-2 border-border pl-4 font-body text-sm italic text-muted-foreground" style={{ lineHeight: 1.65 }}>
           {data.curiosityGap}
         </p>
       )}

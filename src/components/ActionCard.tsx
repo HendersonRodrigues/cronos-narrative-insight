@@ -3,15 +3,15 @@ import { Shield, ExternalLink } from "lucide-react";
 import type { AssetData } from "@/data/mockData";
 
 const riskBorder = {
-  alto: "border-risk-off",
-  moderado: "border-caution",
-  baixo: "border-risk-on",
+  alto: "border-destructive/60",
+  moderado: "border-amber-500/60",
+  baixo: "border-green-500/60",
 } as const;
 
 const riskLabel = {
-  alto: { text: "text-risk-off", label: "Risco Alto" },
-  moderado: { text: "text-caution", label: "Risco Moderado" },
-  baixo: { text: "text-risk-on", label: "Risco Baixo" },
+  alto: { text: "text-destructive", label: "Risco Alto" },
+  moderado: { text: "text-amber-400", label: "Risco Moderado" },
+  baixo: { text: "text-green-400", label: "Risco Baixo" },
 } as const;
 
 const ActionCard = ({ data }: { data: AssetData }) => {
@@ -27,11 +27,11 @@ const ActionCard = ({ data }: { data: AssetData }) => {
       className={`rounded-xl border-l-4 ${border} bg-card p-5 md:p-8`}
     >
       <div className="mb-3 flex items-center gap-2">
-        <Shield className="h-4 w-4 text-gold" />
+        <Shield className="h-4 w-4 text-primary" />
         <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Ação Estratégica</span>
       </div>
 
-      <h2 className="font-display text-lg md:text-xl font-semibold text-foreground mb-2">
+      <h2 className="font-body text-lg md:text-xl font-semibold text-foreground mb-2">
         {action.title}
       </h2>
 
@@ -39,7 +39,7 @@ const ActionCard = ({ data }: { data: AssetData }) => {
         {risk.label}
       </span>
 
-      <p className="font-body text-sm leading-relaxed text-secondary-foreground mb-6">
+      <p className="font-body text-sm font-normal text-secondary-foreground mb-6" style={{ lineHeight: 1.65 }}>
         {action.description}
       </p>
 
@@ -47,7 +47,7 @@ const ActionCard = ({ data }: { data: AssetData }) => {
         href={action.ctaUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 font-body text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        className="inline-flex items-center gap-2 rounded-lg bg-secondary px-6 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
       >
         {action.ctaLabel}
         <ExternalLink className="h-4 w-4" />
