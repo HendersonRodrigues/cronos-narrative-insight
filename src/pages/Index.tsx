@@ -15,7 +15,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <CronosHeader selected={selected} onSelect={setSelected} />
 
-      <main className="container flex-1 py-6 space-y-5">
+      <main className="container flex-1 py-8 space-y-6">
         <NarrativeCard data={data} />
         <ActionCard data={data} />
         <CycleTimeline events={data.timeline} />

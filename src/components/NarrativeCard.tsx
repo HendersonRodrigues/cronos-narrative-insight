@@ -3,9 +3,18 @@ import { BookOpen, Clock } from "lucide-react";
 import type { AssetData } from "@/data/mockData";
 
 const regimeStyles = {
-  "risk-off": { badge: "bg-destructive/10 text-destructive border border-destructive/20", dot: "bg-destructive" },
-  "risk-on": { badge: "bg-green-500/10 text-green-400 border border-green-500/20", dot: "bg-green-500" },
-  caution: { badge: "bg-amber-500/10 text-amber-400 border border-amber-500/20", dot: "bg-amber-500" },
+  "risk-off": {
+    badge: "bg-[hsl(0_20%_10%)] text-[hsl(0_70%_65%)] border border-[hsl(0_50%_20%/0.5)]",
+    dot: "bg-[hsl(0_70%_55%)]",
+  },
+  "risk-on": {
+    badge: "bg-[hsl(142_30%_12%)] text-[hsl(142_60%_55%)] border border-[hsl(142_40%_20%/0.5)]",
+    dot: "bg-[hsl(142_60%_45%)]",
+  },
+  caution: {
+    badge: "bg-[hsl(30_30%_12%)] text-[hsl(30_80%_60%)] border border-[hsl(30_40%_20%/0.5)]",
+    dot: "bg-[hsl(30_80%_55%)]",
+  },
 } as const;
 
 const NarrativeCard = ({ data }: { data: AssetData }) => {
@@ -34,7 +43,7 @@ const NarrativeCard = ({ data }: { data: AssetData }) => {
         {data.title}
       </h1>
 
-      <p className="font-body text-sm md:text-base font-normal text-secondary-foreground" style={{ lineHeight: 1.7 }}>
+      <p className="font-body text-base font-normal text-foreground/90" style={{ lineHeight: 1.7 }}>
         {data.narrative}
       </p>
 

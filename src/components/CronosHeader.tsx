@@ -12,8 +12,8 @@ const CronosHeader = ({ selected, onSelect }: Props) => (
   <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
     <div className="container flex items-center justify-between py-4">
       <div className="flex items-center gap-2">
-        <Activity className="h-5 w-5 text-primary" />
-        <span className="font-body text-xl font-bold tracking-widest text-primary">CRONOS</span>
+        <Activity className="h-5 w-5 text-accent" />
+        <span className="font-body text-xl font-bold tracking-widest text-accent">CRONOS</span>
       </div>
       <div className="flex items-center gap-1.5">
         {assets.map((a) => (
@@ -23,7 +23,7 @@ const CronosHeader = ({ selected, onSelect }: Props) => (
             className={`rounded-md px-4 py-2 font-mono text-xs font-medium transition-all ${
               selected === a
                 ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-foreground hover:bg-secondary/80"
+                : "border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-foreground"
             }`}
           >
             {a}
