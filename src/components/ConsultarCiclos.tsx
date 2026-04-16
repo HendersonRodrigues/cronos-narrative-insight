@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass, Swords, TrendingUp, ChevronDown } from "lucide-react";
 
-const questions = [
+const defaultQuestions = [
   {
     icon: Compass,
     emoji: "🧭",
@@ -26,8 +26,27 @@ const questions = [
   },
 ];
 
-const ConsultarCiclos = () => {
+interface QuestionsData {
+  pastRhyme: string | null;
+  tugOfWar: string | null;
+  realisticView: string | null;
+}
+
+interface Props {
+  questions?: QuestionsData;
+}
+
+const ConsultarCiclos = ({ questions }: Props) => {
   const [open, setOpen] = useState<number | null>(null);
+
+  // Merge live questions over defaults when available
+  const items = defaultQuestions.map((q, i) => {
+    const liveAnswer =
+      i === 0 ? questions?.pastRhyme :
+      i === 1 ? questions?.tugOfWar :
+      questions?.realisticView;
+    return { ...q, answer: liveAnswer || q.answer };
+  });
 
   return (
     <motion.div
@@ -41,7 +60,7 @@ const ConsultarCiclos = () => {
       </h3>
 
       <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-3 mb-4">
-        {questions.map((q, i) => (
+        {items.map((q, i) => (
           <button
             key={i}
             onClick={() => setOpen(open === i ? null : i)}
@@ -74,7 +93,7 @@ const ConsultarCiclos = () => {
           >
             <div className="rounded-lg border border-border bg-secondary/50 p-5">
               <p className="font-body text-sm text-secondary-foreground" style={{ lineHeight: 1.7 }}>
-                {questions[open].answer}
+                {items[open].answer}
               </p>
             </div>
           </motion.div>
