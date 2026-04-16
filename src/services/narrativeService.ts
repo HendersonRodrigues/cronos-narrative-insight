@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { NarrativeRow, MappedAssetData } from "@/types/narrative";
 import { mockData, type Asset, type MarketRegime } from "@/data/mockData";
 
-const regimeMap: Record<string, { regime: string; color: "risk-off" | "risk-on" | "caution" }> = {
+const regimeMap: Record<string, { regime: MarketRegime; color: "risk-off" | "risk-on" | "caution" }> = {
   "risk-off": { regime: "Risk-Off", color: "risk-off" },
   "risk-on": { regime: "Risk-On", color: "risk-on" },
   "bull": { regime: "Bull Market", color: "risk-on" },
