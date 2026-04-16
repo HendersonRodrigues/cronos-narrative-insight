@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Shield, ExternalLink } from "lucide-react";
+import { Shield, ArrowUpRight } from "lucide-react";
 import type { AssetData } from "@/data/mockData";
 
 const riskBorder = {
@@ -47,10 +47,10 @@ const ActionCard = ({ data }: { data: AssetData }) => {
         href={action.ctaUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-lg bg-[hsl(160_84%_39%)] px-6 py-3 font-body text-sm font-medium text-white transition-all hover:bg-[hsl(160_84%_34%)] hover:shadow-[0_0_20px_hsl(160_84%_39%/0.3)]"
+        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(160_84%_39%)] to-[hsl(160_70%_32%)] px-7 py-3.5 font-body text-sm font-semibold text-white transition-all hover:shadow-[0_0_24px_hsl(160_84%_39%/0.35)] hover:brightness-110"
       >
         {action.ctaLabel}
-        <ExternalLink className="h-4 w-4" />
+        <ArrowUpRight className="h-4 w-4" />
       </a>
     </motion.div>
   );
