@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { NarrativeRow, MappedAssetData } from "@/types/narrative";
-import { mockData, type Asset } from "@/data/mockData";
+import { mockData, type Asset, type MarketRegime } from "@/data/mockData";
 
 const regimeMap: Record<string, { regime: string; color: "risk-off" | "risk-on" | "caution" }> = {
   "risk-off": { regime: "Risk-Off", color: "risk-off" },
@@ -16,7 +16,7 @@ function mapRowToAssetData(row: NarrativeRow, asset: Asset): MappedAssetData {
   const regimeInfo = regimeMap[row.market_regime?.toLowerCase()] ?? { regime: row.market_regime as MarketRegime, color: "caution" as const };
 
   return {
-    asset: row.asset_id,
+    asset: row.asset_id as Asset,
     title: row.title,
     narrative: `${row.content_historical} ${row.content_weekly}`.trim(),
     curiosityGap: row.gap_curiosity ?? undefined,
