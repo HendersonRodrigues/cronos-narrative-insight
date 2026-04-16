@@ -13,7 +13,7 @@ const regimeMap: Record<string, { regime: string; color: "risk-off" | "risk-on" 
 
 function mapRowToAssetData(row: NarrativeRow, asset: Asset): MappedAssetData {
   const fallback = mockData[asset];
-  const regimeInfo = regimeMap[row.market_regime?.toLowerCase()] ?? { regime: row.market_regime, color: "caution" as const };
+  const regimeInfo = regimeMap[row.market_regime?.toLowerCase()] ?? { regime: row.market_regime as MarketRegime, color: "caution" as const };
 
   return {
     asset: row.asset_id,

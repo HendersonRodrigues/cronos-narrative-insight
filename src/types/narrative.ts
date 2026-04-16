@@ -1,3 +1,5 @@
+import type { Asset, MarketRegime, RiskLevel, TimelineEvent } from "@/data/mockData";
+
 export interface NarrativeRow {
   id: string;
   asset_id: string;
@@ -15,23 +17,21 @@ export interface NarrativeRow {
   updated_at?: string;
 }
 
-import type { Asset } from "@/data/mockData";
-
 export interface MappedAssetData {
   asset: Asset;
   title: string;
   narrative: string;
   curiosityGap?: string;
-  regime: string;
+  regime: MarketRegime;
   regimeColor: "risk-off" | "risk-on" | "caution";
   action: {
     title: string;
     description: string;
-    riskLevel: "alto" | "moderado" | "baixo";
+    riskLevel: RiskLevel;
     ctaLabel: string;
     ctaUrl: string;
   };
-  timeline: { year: string; label: string; description: string; isCurrent?: boolean }[];
+  timeline: TimelineEvent[];
   lastUpdate: string;
   questions: {
     pastRhyme: string | null;
