@@ -15,8 +15,10 @@ export interface NarrativeRow {
   updated_at?: string;
 }
 
+import type { Asset } from "@/data/mockData";
+
 export interface MappedAssetData {
-  asset: string;
+  asset: Asset;
   title: string;
   narrative: string;
   curiosityGap?: string;
