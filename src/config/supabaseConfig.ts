@@ -17,8 +17,8 @@
  */
 
 // 👇 COLE SUAS CREDENCIAIS AQUI 👇
-const HARDCODED_SUPABASE_URL = ""; // ex: "https://xxxxxxxx.supabase.co"
-const HARDCODED_SUPABASE_ANON_KEY = ""; // ex: "eyJhbGciOiJIUzI1NiIs..."
+const HARDCODED_SUPABASE_URL = "https://wfyereifmxdvakxaxplq.supabase.co"; // ex: "https://xxxxxxxx.supabase.co"
+const HARDCODED_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeWVyZWlmbXhkdmFreGF4cGxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwODg5ODUsImV4cCI6MjA5MTY2NDk4NX0.GD0MvcTuPeI9rIrldgl8_Mw6CqpAvJTFwQ_RMgZVtaI"; // ex: "eyJhbGciOiJIUzI1NiIs..."
 
 export const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || HARDCODED_SUPABASE_URL;
