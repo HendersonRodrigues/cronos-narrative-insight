@@ -1,14 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  IS_SUPABASE_CONFIGURED,
+} from "@/config/supabaseConfig";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!IS_SUPABASE_CONFIGURED) {
   console.warn(
-    "⚠️ VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não definidos. Usando dados mock como fallback."
+    "⚠️ Supabase não configurado. Edite src/config/supabaseConfig.ts e cole suas credenciais, ou configure as Build Secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY. Usando dados mock como fallback."
   );
+} else {
+  console.info("✅ Supabase configurado. Conectando ao projeto externo.");
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = IS_SUPABASE_CONFIGURED
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
