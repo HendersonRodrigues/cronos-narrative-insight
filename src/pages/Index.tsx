@@ -14,37 +14,82 @@ const Index = () => {
   const [selected, setSelected] = useState<Asset>("IBOV");
   const { data, loading, error, isLive } = useNarrative(selected);
 
+  // Determina se estamos em um estado de "Geração Profunda" (IA pensando)
+  // Se está carregando e ainda não temos os dados 'live', é uma geração.
+  const isGenerating = loading && !isLive;
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-950">
       <CronosHeader selected={selected} onSelect={setSelected} />
 
-      <main className="container flex-1 py-8 space-y-6">
+      <main className="container flex-1 py-8 space-y-6 max-w-4xl mx-auto">
+        
+        {/* Alerta de Erro / Fallback */}
         {error && (
-          <div className="rounded-lg border border-[hsl(0_50%_20%/0.5)] bg-[hsl(0_20%_10%)] p-4">
-            <p className="font-mono text-xs text-[hsl(0_70%_65%)]">
-              ⚠ Falha ao conectar com o banco de dados. Exibindo dados de demonstração.
+          <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-4 animate-in fade-in duration-500">
+            <p className="font-mono text-xs text-red-400 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+              ⚠ Modo de Contingência: Falha na conexão com o Cérebro Cronos. Exibindo dados históricos de segurança.
             </p>
           </div>
         )}
 
-        {isLive && (
+        {/* Status da Inteligência */}
+        <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[hsl(142_60%_45%)] animate-pulse" />
-            <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Dados ao vivo</span>
+            {isLive ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono text-[10px] text-emerald-500/80 uppercase tracking-widest font-bold">
+                  Sincronizado com Gemini 2.0 Flash
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="h-2 w-2 rounded-full bg-slate-700" />
+                <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+                  Modo de Demonstração
+                </span>
+              </>
+            )}
           </div>
-        )}
+          
+          {data?.lastUpdate && !loading && (
+            <span className="font-mono text-[10px] text-slate-600 uppercase">
+              Atualizado em: {data.lastUpdate}
+            </span>
+          )}
+        </div>
 
         <SeuVeredito />
 
         {loading ? (
-          <NarrativeSkeleton />
+          <div className="space-y-6">
+            {/* Feedback visual de que a IA está trabalhando */}
+            {isGenerating && (
+              <div className="flex flex-col items-center justify-center p-8 border border-slate-800 rounded-xl bg-slate-900/50 space-y-3">
+                <div className="h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <p className="font-mono text-xs text-slate-400 animate-pulse">
+                  Cronos está cruzando ciclos históricos de 20 anos...
+                </p>
+              </div>
+            )}
+            <NarrativeSkeleton />
+          </div>
         ) : (
-          <>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <NarrativeCard data={data} />
-            <ConsultarCiclos questions={data.questions} />
+            
+            {/* Renderiza as perguntas guiadas apenas se existirem (vierem da IA) */}
+            {data.questions && (
+              <ConsultarCiclos questions={data.questions} />
+            )}
+            
             <ActionCard data={data} />
+            
+            {/* Timeline de ciclos históricos para reforçar o viés de dados do App */}
             <CycleTimeline events={data.timeline} />
-          </>
+          </div>
         )}
       </main>
 
