@@ -1,37 +1,31 @@
 import { Activity } from "lucide-react";
-import type { Asset } from "@/data/mockData";
 
-const assets: Asset[] = ["IBOV", "DOLAR", "SELIC", "IPCA"];
+export default function CronosHeader() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <div className="container max-w-5xl mx-auto flex items-center justify-between py-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 ring-primary-soft">
+            <Activity className="h-4 w-4 text-primary" />
+            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary animate-pulse" />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="font-display text-lg font-semibold tracking-tight text-foreground">
+              CRONOS
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Inteligência de Mercado
+            </span>
+          </div>
+        </div>
 
-interface Props {
-  selected: Asset;
-  onSelect: (a: Asset) => void;
+        <div className="hidden items-center gap-2 md:flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
+            Live · Cronos Brain
+          </span>
+        </div>
+      </div>
+    </header>
+  );
 }
-
-const CronosHeader = ({ selected, onSelect }: Props) => (
-  <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-    <div className="container flex items-center justify-between py-4">
-      <div className="flex items-center gap-2">
-        <Activity className="h-5 w-5 text-accent" />
-        <span className="font-body text-xl font-bold tracking-widest text-accent">CRONOS</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {assets.map((a) => (
-          <button
-            key={a}
-            onClick={() => onSelect(a)}
-            className={`rounded-md px-4 py-2 font-mono text-xs font-medium transition-all ${
-              selected === a
-                ? "bg-primary text-primary-foreground"
-                : "border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-foreground"
-            }`}
-          >
-            {a}
-          </button>
-        ))}
-      </div>
-    </div>
-  </header>
-);
-
-export default CronosHeader;
