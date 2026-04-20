@@ -9,7 +9,7 @@ async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
     .select("*")
     .order("date", { ascending: false })
     .order("id", { ascending: false })
-    .limit(8);
+    .limit(1500);
   if (error) throw error;
   return (data as MarketDataPoint[] | null) ?? [];
 }
