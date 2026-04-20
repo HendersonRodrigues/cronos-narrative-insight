@@ -12,20 +12,40 @@ export default function FooterFeed() {
   const { data, isLoading, error } = useMarketFeed();
 
   // 1. Processamento dos dados para a tabela comparativa
-  const processedData = !isLoading && !error && data ? (() => {
+const processedData = !isLoading && !error && data ? (() => {
     const assets = ['ibov', 'dolar', 'selic'];
+    const agora = new Date();
     
+    // Datas de referência
+    const dataUmMes = new Date();
+    dataUmMes.setDate(agora.getDate() - 30);
+    
+    const dataUmAno = new Date();
+    dataUmAno.setDate(agora.getDate() - 365);
+
     return assets.reduce((acc: any, asset) => {
-      // Filtra os registros do ativo específico e garante ordem cronológica
       const series = data
         .filter(d => d.asset_id?.toLowerCase().trim() === asset)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .map(d => ({ ...d, dateObj: new Date(d.date) }))
+        .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+
+      if (series.length === 0) {
+        acc[asset] = { hoje: null, umMes: null, umAno: null };
+        return acc;
+      }
+
+      // Função auxiliar para achar o registro mais próximo de uma data alvo
+      const findClosest = (targetDate: Date) => {
+        return series.reduce((prev, curr) => {
+          return Math.abs(curr.dateObj.getTime() - targetDate.getTime()) < 
+                 Math.abs(prev.dateObj.getTime() - targetDate.getTime()) ? curr : prev;
+        });
+      };
 
       acc[asset] = {
         hoje: series[0]?.value,
-        // Índice 21 aprox. 1 mês útil / Índice 252 aprox. 1 ano útil
-        umMes: series[21]?.value,
-        umAno: series[252]?.value
+        umMes: findClosest(dataUmMes)?.value,
+        umAno: findClosest(dataUmAno)?.value
       };
       return acc;
     }, {});
