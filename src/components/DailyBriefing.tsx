@@ -1,22 +1,42 @@
-import { Sparkles, Calendar, AlertCircle, Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { Sparkles, Calendar, AlertCircle, Loader2, Brain } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useQueryClient } from "@tanstack/react-query";
 import { useDailyBriefing } from "@/hooks/useDailyBriefing";
 import { Card } from "@/components/ui/card";
-
-function formatDate(iso?: string) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
+import { formatDateLong } from "@/lib/format";
 
 export default function DailyBriefing() {
   const { data, isLoading, error } = useDailyBriefing();
+  const qc = useQueryClient();
+
+  // Realtime: novo briefing inserido pelo cron → invalida a query
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase
+      .channel("daily_briefing_changes")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "daily_briefing" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["daily_briefing", "latest"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "daily_briefing" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["daily_briefing", "latest"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  }, [qc]);
 
   return (
     <Card className="relative overflow-hidden border-border/60 bg-card/60 backdrop-blur-sm glow-primary">
@@ -24,10 +44,16 @@ export default function DailyBriefing() {
       <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
       <div className="relative p-6 md:p-8">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1">
-            <Sparkles className="h-3 w-3 text-primary" />
+            <Brain className="h-3 w-3 text-primary" />
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+              Análise do Cronos
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-2 py-0.5">
+            <Sparkles className="h-3 w-3 text-muted-foreground" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               Insight do Dia
             </span>
           </div>
@@ -35,7 +61,7 @@ export default function DailyBriefing() {
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Calendar className="h-3 w-3" />
               <span className="font-mono text-[10px] uppercase tracking-wider">
-                {formatDate(data.date)}
+                {formatDateLong(data.date)}
               </span>
             </div>
           )}
@@ -43,10 +69,10 @@ export default function DailyBriefing() {
 
         {isLoading && (
           <div className="space-y-3">
-            <div className="h-7 w-2/3 rounded bg-muted/50 animate-pulse" />
-            <div className="h-4 w-full rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-11/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-9/12 rounded bg-muted/40 animate-pulse" />
+            <Skeleton className="h-7 w-2/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-9/12" />
             <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span className="font-mono uppercase tracking-wider">
@@ -81,9 +107,9 @@ export default function DailyBriefing() {
             <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
               {data.title}
             </h2>
-            <p className="text-base leading-relaxed text-foreground/85 whitespace-pre-line">
-              {data.content}
-            </p>
+            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-headings:font-display prose-headings:tracking-tight prose-p:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/85">
+              <ReactMarkdown>{data.content}</ReactMarkdown>
+            </div>
             {data.profile_type && data.profile_type !== "geral" && (
               <div className="pt-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-secondary-foreground">
