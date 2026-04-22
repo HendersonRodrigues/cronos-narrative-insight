@@ -31,16 +31,20 @@ async function invokeBrain({ message, profile }: BrainInput): Promise<CronosBrai
   try {
     // Header Authorization: Bearer <publishable key> enviado explicitamente —
     // sem ele a Edge Function retorna 401 e o front quebra ao ler o resultado.
-    const { data, error } = await supabase.functions.invoke<CronosBrainResponse>(
-      "cronos-brain",
-      {
-        body: { message, userProfile, profile: userProfile },
-        headers: {
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          apikey: SUPABASE_ANON_KEY,
-        },
+    // Altere apenas o bloco do invoke
+  const { data, error } = await supabase.functions.invoke<CronosBrainResponse>(
+    "cronos-brain",
+    {
+      body: { 
+        prompt: message, // ALTERADO: De 'message' para 'prompt'
+        userProfile: userProfile // Mantendo o perfil como a função espera
       },
-    );
+      headers: {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+    },
+  );
 
     if (error) {
       const raw = await readEdgeErrorBody(error);
