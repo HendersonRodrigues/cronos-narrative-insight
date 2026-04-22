@@ -1,6 +1,7 @@
 import { useState } from "react";
 import CronosHeader from "@/components/CronosHeader";
 import DailyBriefing from "@/components/DailyBriefing";
+import MarketDashboard from "@/components/MarketDashboard";
 import ProfileLens from "@/components/ProfileLens";
 import ConsultoriaInteligente from "@/components/ConsultoriaInteligente";
 import ResponseDisplay from "@/components/ResponseDisplay";
@@ -27,6 +28,8 @@ const Index = () => {
 
       <main className="container max-w-5xl mx-auto flex-1 px-4 py-8 space-y-10">
         <DailyBriefing />
+
+        <MarketDashboard />
 
         <ProfileLens profile={profile} onChange={setProfile} />
 
