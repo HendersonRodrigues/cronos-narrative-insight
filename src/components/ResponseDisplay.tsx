@@ -30,10 +30,23 @@ interface Props {
 
 export default function ResponseDisplay({ isLoading, error, answer, question }: Props) {
   const [accordionValue, setAccordionValue] = useState<string>("");
+  const [statusIndex, setStatusIndex] = useState(0);
 
   // Fecha o accordion ao iniciar uma nova consulta
   useEffect(() => {
     if (isLoading) setAccordionValue("");
+  }, [isLoading]);
+
+  // Rotaciona mensagens de status durante o loading
+  useEffect(() => {
+    if (!isLoading) {
+      setStatusIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setStatusIndex((i) => (i + 1) % STATUS_MESSAGES.length);
+    }, 1800);
+    return () => clearInterval(id);
   }, [isLoading]);
 
   if (!isLoading && !error && !answer) return null;
