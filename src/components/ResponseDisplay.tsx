@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2, Brain, AlertCircle, Terminal } from "lucide-react";
+import { Loader2, Brain, AlertCircle, Terminal, Activity } from "lucide-react";
+
+const STATUS_MESSAGES = [
+  "Cronos está cruzando dados do S&P 500…",
+  "Calculando correlações com o Ibovespa…",
+  "Analisando fluxo do DXY e treasuries…",
+  "Mapeando a curva de juros brasileira…",
+  "Cruzando IPCA com expectativas Focus…",
+  "Lendo o tape do book institucional…",
+  "Sintetizando narrativas macro globais…",
+  "Calibrando o cenário pelo seu perfil…",
+];
 import { Card } from "@/components/ui/card";
 import {
   Accordion,
