@@ -27,8 +27,12 @@ export default function ResponseDisplay({ isLoading, error, answer, question }: 
 
   if (!isLoading && !error && !answer) return null;
 
-  // Divide a resposta no marcador [DETALHES]
-  const [resumoRaw = "", detalhesRaw = ""] = answer ? answer.split("[DETALHES]") : [];
+  // Divide a resposta no marcador [DETALHES] APENAS quando ele existir.
+  // Caso contrário, renderiza a resposta integralmente como Insight Rápido.
+  const hasDetails = typeof answer === "string" && answer.includes("[DETALHES]");
+  const [resumoRaw = "", detalhesRaw = ""] = hasDetails
+    ? (answer as string).split("[DETALHES]")
+    : [answer ?? "", ""];
   const resumo = resumoRaw.trim();
   const detalhes = detalhesRaw.trim();
 
