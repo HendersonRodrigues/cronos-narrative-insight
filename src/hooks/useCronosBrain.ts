@@ -9,6 +9,11 @@ interface BrainInput {
   profile: ProfileType;
 }
 
+const start = Date.now();
+const { data, error } = await supabase.functions.invoke(...);
+const end = Date.now();
+console.log(`Tempo total de resposta: ${(end - start) / 1000} segundos`);
+
 const FRIENDLY_FALLBACK =
   "Não conseguimos processar sua análise no momento. Tente novamente em instantes.";
 
