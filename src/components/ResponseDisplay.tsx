@@ -90,11 +90,22 @@ export default function ResponseDisplay({ isLoading, error, answer, question }: 
         </div>
 
         {isLoading && (
-          <div className="space-y-3 py-2">
-            <div className="h-4 w-11/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-10/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-9/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-8/12 rounded bg-muted/40 animate-pulse" />
+          <div className="space-y-4 py-2">
+            <div
+              key={statusIndex}
+              className="flex items-center gap-2.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5 animate-in fade-in slide-in-from-left-1 duration-500"
+            >
+              <Activity className="h-3.5 w-3.5 text-primary animate-pulse shrink-0" />
+              <span className="font-mono text-[11px] tracking-wide text-primary/90">
+                {STATUS_MESSAGES[statusIndex]}
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-11/12 rounded bg-muted/40 animate-pulse" />
+              <div className="h-4 w-10/12 rounded bg-muted/40 animate-pulse" />
+              <div className="h-4 w-9/12 rounded bg-muted/40 animate-pulse" />
+              <div className="h-4 w-8/12 rounded bg-muted/40 animate-pulse" />
+            </div>
           </div>
         )}
 
