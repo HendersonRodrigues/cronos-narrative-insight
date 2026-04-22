@@ -11,10 +11,14 @@ interface BrainInput {
 async function invokeBrain({ message, profile }: BrainInput): Promise<CronosBrainResponse> {
   if (!supabase) throw new Error("Supabase não configurado");
 
+  // Envia userProfile (novo contrato do cérebro Mistral). Mantém `profile` por
+  // retro-compatibilidade caso a Edge Function ainda leia o campo antigo.
+  const userProfile = profile ?? "moderado";
+
   // Garante que o header Authorization: Bearer <publishable key> seja enviado
   // explicitamente para a Edge Function (necessário com o novo formato sb_publishable_*).
   const { data, error } = await supabase.functions.invoke<CronosBrainResponse>("cronos-brain", {
-    body: { message, profile },
+    body: { message, userProfile, profile: userProfile },
     headers: {
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       apikey: SUPABASE_ANON_KEY,
