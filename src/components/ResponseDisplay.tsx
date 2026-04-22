@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2, Brain, AlertCircle, Terminal } from "lucide-react";
+import { Loader2, Brain, AlertCircle, Terminal, Activity } from "lucide-react";
+
+const STATUS_MESSAGES = [
+  "Cronos está cruzando dados do S&P 500…",
+  "Calculando correlações com o Ibovespa…",
+  "Analisando fluxo do DXY e treasuries…",
+  "Mapeando a curva de juros brasileira…",
+  "Cruzando IPCA com expectativas Focus…",
+  "Lendo o tape do book institucional…",
+  "Sintetizando narrativas macro globais…",
+  "Calibrando o cenário pelo seu perfil…",
+];
 import { Card } from "@/components/ui/card";
 import {
   Accordion,
@@ -19,10 +30,23 @@ interface Props {
 
 export default function ResponseDisplay({ isLoading, error, answer, question }: Props) {
   const [accordionValue, setAccordionValue] = useState<string>("");
+  const [statusIndex, setStatusIndex] = useState(0);
 
   // Fecha o accordion ao iniciar uma nova consulta
   useEffect(() => {
     if (isLoading) setAccordionValue("");
+  }, [isLoading]);
+
+  // Rotaciona mensagens de status durante o loading
+  useEffect(() => {
+    if (!isLoading) {
+      setStatusIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setStatusIndex((i) => (i + 1) % STATUS_MESSAGES.length);
+    }, 1800);
+    return () => clearInterval(id);
   }, [isLoading]);
 
   if (!isLoading && !error && !answer) return null;
@@ -66,11 +90,22 @@ export default function ResponseDisplay({ isLoading, error, answer, question }: 
         </div>
 
         {isLoading && (
-          <div className="space-y-3 py-2">
-            <div className="h-4 w-11/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-10/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-9/12 rounded bg-muted/40 animate-pulse" />
-            <div className="h-4 w-8/12 rounded bg-muted/40 animate-pulse" />
+          <div className="space-y-4 py-2">
+            <div
+              key={statusIndex}
+              className="flex items-center gap-2.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5 animate-in fade-in slide-in-from-left-1 duration-500"
+            >
+              <Activity className="h-3.5 w-3.5 text-primary animate-pulse shrink-0" />
+              <span className="font-mono text-[11px] tracking-wide text-primary/90">
+                {STATUS_MESSAGES[statusIndex]}
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-11/12 rounded bg-muted/40 animate-pulse" />
+              <div className="h-4 w-10/12 rounded bg-muted/40 animate-pulse" />
+              <div className="h-4 w-9/12 rounded bg-muted/40 animate-pulse" />
+              <div className="h-4 w-8/12 rounded bg-muted/40 animate-pulse" />
+            </div>
           </div>
         )}
 
