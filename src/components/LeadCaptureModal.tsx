@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/config/supabaseConfig";
+import { supabase } from "@/lib/supabase";
 
 interface LeadCaptureModalProps {
   open: boolean;
