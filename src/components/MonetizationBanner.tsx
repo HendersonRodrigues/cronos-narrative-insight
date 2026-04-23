@@ -1,9 +1,10 @@
 import { ArrowUpRight, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function MonetizationBanner() {
   return (
-    <a
-      href="#"
+    <Link
+      to="/oportunidades"
       className="group relative block overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 transition-all hover:border-primary/60 hover:glow-primary"
     >
       <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
@@ -32,6 +33,6 @@ export default function MonetizationBanner() {
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
