@@ -11,6 +11,10 @@ export interface Opportunity {
   riskLabel: string;
   horizon: string;
   accent: OpportunityAccent;
+  // --- ADICIONE ESTES CAMPOS PARA A CALCULADORA ---
+  minMonths: number;    // ex: 12
+  maxMonths: number;    // ex: 36
+  comparisonCDI: number; // ex: 1.5 (significa 150% do CDI)
 }
 
 export const OPPORTUNITIES: Opportunity[] = [
@@ -27,6 +31,9 @@ export const OPPORTUNITIES: Opportunity[] = [
     riskLabel: "Risco Moderado",
     horizon: "24 a 60 meses",
     accent: "gold",
+    minMonths: 24,
+    maxMonths: 60,
+    comparisonCDI: 1.6, // Exemplo: 160% do CDI
   },
   {
     id: "commodities-alpha",
@@ -41,6 +48,9 @@ export const OPPORTUNITIES: Opportunity[] = [
     riskLabel: "Risco Moderado-Alto",
     horizon: "12 a 36 meses",
     accent: "graphite",
+    minMonths: 12,
+    maxMonths: 36,
+    comparisonCDI: 1.4, // Exemplo: 160% do CDI
   },
   {
     id: "arbitragem-digital",
@@ -55,6 +65,9 @@ export const OPPORTUNITIES: Opportunity[] = [
     riskLabel: "Risco Calculado",
     horizon: "6 a 24 meses",
     accent: "navy",
+    minMonths: 6,
+    maxMonths: 24,
+    comparisonCDI: 1.3, // Exemplo: 160% do CDI
   },
 ];
 
