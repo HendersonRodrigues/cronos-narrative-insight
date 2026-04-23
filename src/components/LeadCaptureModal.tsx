@@ -53,50 +53,50 @@ export default function LeadCaptureModal({
 
   async function handleSubmit(e: React.FormEvent) {
   e.preventDefault();
+  console.log("🚀 BOTÃO CLICADO! Iniciando handleSubmit...");
+
   const trimmedName = name.trim();
   const digits = whatsapp.replace(/\D/g, "");
 
-  // Validações básicas
+  console.log("Dados capturados:", { name: trimmedName, phone: digits, opportunity: opportunityTitle });
+
   if (trimmedName.length < 3) {
+    console.warn("❌ Falha na validação do nome");
     toast.error("Informe seu nome completo.");
     return;
   }
+  
   if (digits.length < 10) {
-    toast.error("WhatsApp inválido. Use DDD + número.");
+    console.warn("❌ Falha na validação do WhatsApp");
+    toast.error("WhatsApp inválido.");
     return;
   }
 
   setSubmitting(true);
+  console.log("📡 Tentando conexão com Supabase...");
 
   try {
-    // AQUI É A CONEXÃO REAL COM O SUPABASE
-    const { error } = await supabase
-      .from('leads') // Nome exato da tabela que criamos
+    const { data, error } = await supabase
+      .from('leads')
       .insert([
         { 
           full_name: trimmedName, 
           whatsapp: digits, 
-          opportunity_name: opportunityTitle, // Variável que o modal já recebe
+          opportunity_name: opportunityTitle,
           status: 'novo' 
         }
       ]);
 
     if (error) {
-      // Se o Supabase responder com erro (ex: RLS bloqueando)
-      console.error("Erro Supabase:", error.message);
+      console.error("🔥 ERRO DO SUPABASE:", error);
       throw error;
     }
 
-    // Se chegou aqui, deu certo!
+    console.log("✅ SUCESSO! Lead gravado:", data);
     setSuccess(true);
-    toast.success("Interesse registrado. Em breve entraremos em contato.");
-    
-    // Opcional: fechar o modal após 2 segundos de sucesso
-    setTimeout(() => onOpenChange(false), 3000);
-
+    toast.success("Interesse registrado!");
   } catch (error) {
-    toast.error("Não foi possível enviar seu interesse. Tente novamente.");
-    console.error("Erro no envio do lead:", error);
+    console.error("🕵️ ERRO CAPTURADO NO CATCH:", error);
   } finally {
     setSubmitting(false);
   }
