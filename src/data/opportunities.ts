@@ -73,6 +73,6 @@ export const OPPORTUNITIES: Opportunity[] = [
 
 // Benchmarks anuais aproximados para comparação
 export const BENCHMARKS = {
-  cdi: 10.5,
-  poupanca: 7.2,
+  cdi: 14.65,
+  poupanca: 8.2,
 };
