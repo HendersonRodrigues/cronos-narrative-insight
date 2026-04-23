@@ -52,32 +52,30 @@ export default function LeadCaptureModal({
   }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    window.alert("O CÓDIGO ESTÁ VIVO!"); // Adicione isso aqui
-    console.log("Submit disparado");
-
+  e.preventDefault();
+  
+  // 1. Limpeza e Validação
   const trimmedName = name.trim();
   const digits = whatsapp.replace(/\D/g, "");
 
-  console.log("Dados capturados:", { name: trimmedName, phone: digits, opportunity: opportunityTitle });
-
-  if (trimmedName.length < 3) {
-    console.warn("❌ Falha na validação do nome");
-    toast.error("Informe seu nome completo.");
+  if (trimmedName.length < 3 || digits.length < 10) {
+    toast.error("Por favor, preencha nome e WhatsApp corretamente.");
     return;
   }
-  
-  if (digits.length < 10) {
-    console.warn("❌ Falha na validação do WhatsApp");
-    toast.error("WhatsApp inválido.");
+
+  // 2. Verificação do Cliente
+  if (!supabase) {
+    console.error("❌ Erro: O cliente Supabase não foi inicializado (está nulo).");
+    toast.error("Erro de configuração no servidor. Tente novamente mais tarde.");
     return;
   }
 
   setSubmitting(true);
-  console.log("📡 Tentando conexão com Supabase...");
 
   try {
-    const { data, error } = await supabase
+    console.log("📡 Enviando para o Supabase...", { trimmedName, digits, opportunityTitle });
+
+    const { error, data } = await supabase
       .from('leads')
       .insert([
         { 
@@ -86,22 +84,26 @@ export default function LeadCaptureModal({
           opportunity_name: opportunityTitle,
           status: 'novo' 
         }
-      ]);
+      ])
+      .select(); // O .select() ajuda a confirmar que o dado foi criado
 
     if (error) {
-      console.error("🔥 ERRO DO SUPABASE:", error);
+      console.error("🔥 Erro na query do Supabase:", error.message);
       throw error;
     }
 
-    console.log("✅ SUCESSO! Lead gravado:", data);
+    console.log("✅ Lead gravado com sucesso!", data);
     setSuccess(true);
-    toast.success("Interesse registrado!");
-  } catch (error) {
-    console.error("🕵️ ERRO CAPTURADO NO CATCH:", error);
+    toast.success("Interesse registrado com sucesso!");
+
+  } catch (error: any) {
+    console.error("🕵️ Erro capturado:", error);
+    toast.error(error.message || "Erro ao enviar dados. Verifique sua conexão.");
   } finally {
     setSubmitting(false);
   }
 }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
