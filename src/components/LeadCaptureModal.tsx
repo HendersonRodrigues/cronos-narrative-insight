@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeadCaptureModalProps {
   open: boolean;
@@ -51,26 +52,55 @@ export default function LeadCaptureModal({
   }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmedName = name.trim();
-    const digits = whatsapp.replace(/\D/g, "");
+  e.preventDefault();
+  const trimmedName = name.trim();
+  const digits = whatsapp.replace(/\D/g, "");
 
-    if (trimmedName.length < 3) {
-      toast.error("Informe seu nome completo.");
-      return;
-    }
-    if (digits.length < 10) {
-      toast.error("WhatsApp inválido. Use DDD + número.");
-      return;
+  // Validações básicas
+  if (trimmedName.length < 3) {
+    toast.error("Informe seu nome completo.");
+    return;
+  }
+  if (digits.length < 10) {
+    toast.error("WhatsApp inválido. Use DDD + número.");
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
+    // AQUI É A CONEXÃO REAL COM O SUPABASE
+    const { error } = await supabase
+      .from('leads') // Nome exato da tabela que criamos
+      .insert([
+        { 
+          full_name: trimmedName, 
+          whatsapp: digits, 
+          opportunity_name: opportunityTitle, // Variável que o modal já recebe
+          status: 'novo' 
+        }
+      ]);
+
+    if (error) {
+      // Se o Supabase responder com erro (ex: RLS bloqueando)
+      console.error("Erro Supabase:", error.message);
+      throw error;
     }
 
-    setSubmitting(true);
-    // Simulação de envio — futuramente: insert na tabela `leads` do Supabase
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitting(false);
+    // Se chegou aqui, deu certo!
     setSuccess(true);
     toast.success("Interesse registrado. Em breve entraremos em contato.");
+    
+    // Opcional: fechar o modal após 2 segundos de sucesso
+    setTimeout(() => onOpenChange(false), 3000);
+
+  } catch (error) {
+    toast.error("Não foi possível enviar seu interesse. Tente novamente.");
+    console.error("Erro no envio do lead:", error);
+  } finally {
+    setSubmitting(false);
   }
+}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
