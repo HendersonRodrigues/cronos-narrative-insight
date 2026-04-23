@@ -52,8 +52,9 @@ export default function LeadCaptureModal({
   }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  console.log("🚀 BOTÃO CLICADO! Iniciando handleSubmit...");
+    e.preventDefault();
+    window.alert("O CÓDIGO ESTÁ VIVO!"); // Adicione isso aqui
+    console.log("Submit disparado");
 
   const trimmedName = name.trim();
   const digits = whatsapp.replace(/\D/g, "");
