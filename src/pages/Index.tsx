@@ -65,7 +65,19 @@ const Index = () => {
     });
   }
   
-  brain.mutate({ message, profile });
+  brain.mutate({ 
+    message, 
+    profile, 
+    userId: user?.id 
+  }, {
+    onSuccess: () => {
+      // Esperamos 1.5 segundos para dar tempo da Edge Function terminar o insert
+      // e então atualizamos os cards na tela
+      setTimeout(() => {
+        fetchHistory();
+      }, 1500);
+    }
+  });
 }
 
   // Layout para usuário NÃO Logado (mantido)
