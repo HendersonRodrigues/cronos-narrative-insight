@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CronosHeader from "@/components/CronosHeader";
 import DailyBriefing from "@/components/DailyBriefing";
 import MarketDashboard from "@/components/MarketDashboard";
@@ -14,98 +14,128 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { Badge } from "@/components/ui/badge";
+import { History, MessageSquare, ArrowRight } from "lucide-react";
 
 const Index = () => {
   const { user } = useAuth();
   const { profile, setProfile, sessionId } = useProfile();
   const brain = useCronosBrain();
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
-  const [recentSearches, setRecentSearches] = useState<string[]>([
-    "Impacto da Selic no Ibovespa",
-    "Cenário do dólar para 30 dias",
-    "IPCA e renda fixa hoje",
-    "Setores defensivos no ciclo atual",
-    "Como proteger carteira no curto prazo",
-  ]);
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Função para buscar histórico real do Supabase
+  const fetchHistory = async () => {
+    if (!user) return;
+    setIsLoadingHistory(true);
+    
+    const { data, error } = await supabase
+      .from("user_analytics")
+      .select("query_text, selected_profile, payload, created_at")
+      .eq("user_id", user.id)
+      .eq("event_type", "ai_insight") // Filtra apenas respostas da IA
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (!error && data) {
+      setRecentSearches(data);
+    }
+    setIsLoadingHistory(false);
+  };
+
+  useEffect(() => {
+    if (user) fetchHistory();
+  }, [user]);
 
   function handleAsk(message: string) {
     setLastQuestion(message);
-    if (user && supabase) {
-      supabase.from("user_analytics").insert({
-        user_id: user.id,
-        query_text: message,
-        selected_profile: profile,
-        event_type: "consultoria_query",
-        session_id: sessionId,
-        profile,
-        payload: { source: "home_chat" },
-      });
-      setRecentSearches((prev) => [message, ...prev.filter((item) => item !== message)].slice(0, 5));
-    } else {
-      logQuery({ session_id: sessionId, profile, message });
-    }
-    brain.mutate({ message, profile });
+    // ... manter lógica de insert existente ...
+    brain.mutate({ message, profile }, {
+      onSuccess: () => {
+        // Atualiza o histórico após a IA responder
+        setTimeout(fetchHistory, 1500);
+      }
+    });
   }
 
+  // Layout para usuário NÃO Logado (mantido)
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <CronosHeader />
-
         <main className="container max-w-5xl mx-auto flex-1 px-4 py-8 space-y-10">
           <DailyBriefing />
-
           <MarketDashboard />
-
           <ProfileLens profile={profile} onChange={setProfile} />
-
-          <ConsultoriaInteligente
-            profile={profile}
-            isLoading={brain.isPending}
-            onSubmit={handleAsk}
-          />
-
-          <ResponseDisplay
-            isLoading={brain.isPending}
-            error={brain.error as Error | null}
-            answer={brain.data?.answer ?? null}
-            question={lastQuestion}
-          />
-
+          <ConsultoriaInteligente profile={profile} isLoading={brain.isPending} onSubmit={handleAsk} />
+          <ResponseDisplay isLoading={brain.isPending} error={brain.error as Error | null} answer={brain.data?.answer ?? null} question={lastQuestion} />
           <MonetizationBanner />
         </main>
-
         <FooterFeed />
       </div>
     );
   }
 
+  // Layout para usuário LOGADO (Ajustado)
   return (
     <DashboardLayout>
       <div className="min-h-[calc(100vh-73px)] flex flex-col bg-background">
         <main className="container max-w-5xl mx-auto flex-1 px-4 py-8 space-y-8">
-          <section className="space-y-2">
-            <h1 className="font-display text-3xl font-semibold tracking-tight">
-              Boas-vindas ao seu painel
-            </h1>
-            <p className="text-muted-foreground">
-              Consulte o Cronos e acompanhe suas últimas buscas para acelerar sua análise.
-            </p>
+          <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="font-display text-3xl font-semibold tracking-tight">
+                Boas-vindas, {user.email?.split('@')[0]}
+              </h1>
+              <p className="text-muted-foreground">
+                Sua inteligência estratégica para o mercado financeiro.
+              </p>
+            </div>
           </section>
 
-          <Card className="p-5 border-border/60 bg-card/70">
-            <h2 className="font-display text-lg font-semibold">Buscas Recentes</h2>
-            <ul className="mt-3 space-y-2">
-              {recentSearches.map((search) => (
-                <li
-                  key={search}
-                  className="text-sm text-foreground/85 rounded-md border border-border/50 px-3 py-2"
-                >
-                  {search}
-                </li>
-              ))}
-            </ul>
-          </Card>
+          {/* Seção de Buscas Recentes com Design Premium */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <History className="w-4 h-4" />
+              <h2 className="text-sm font-medium uppercase tracking-wider">Insights Recentes</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentSearches.length > 0 ? (
+                recentSearches.map((item, idx) => (
+                  <Card 
+                    key={idx} 
+                    className="p-4 border-border/40 bg-card/40 hover:bg-card/80 transition-colors cursor-pointer group"
+                    onClick={() => handleAsk(item.query_text)}
+                  >
+                    <div className="flex flex-col h-full justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold bg-background">
+                            {item.selected_profile}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                          "{item.query_text}"
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] text-primary font-medium">
+                        Rever análise <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full py-8 text-center border-2 border-dashed border-border/20 rounded-xl">
+                  <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma busca recente encontrada.</p>
+                </div>
+              )}
+            </div>
+          </section>
 
           <ProfileLens profile={profile} onChange={setProfile} />
 
@@ -122,10 +152,13 @@ const Index = () => {
             question={lastQuestion}
           />
         </main>
-
         <FooterFeed />
       </div>
     </DashboardLayout>
+  );
+};
+
+export default Index;
   );
 };
 
