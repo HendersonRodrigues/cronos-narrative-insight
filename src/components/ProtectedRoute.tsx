@@ -3,10 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  adminOnly?: boolean; // Novo parâmetro opcional
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+  const { user, userRole, loading } = useAuth();
 
   if (loading) {
     return (
@@ -19,8 +20,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // Verifica se o usuário está logado
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Se a rota for apenas para admin e o usuário não for admin
+  if (adminOnly && userRole !== "admin") {
+    return <Navigate to="/oportunidades" replace />;
   }
 
   return <>{children}</>;
