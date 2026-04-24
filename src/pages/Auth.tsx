@@ -20,21 +20,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      await signIn(email, password);
-      toast.success("Login realizado com sucesso!");
-      navigate("/oportunidades");
-    } catch (error: any) {
-      toast.error(error?.message || "Falha ao fazer login");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
