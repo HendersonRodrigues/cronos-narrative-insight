@@ -53,21 +53,22 @@ const Index = () => {
   }, [user]);
 
   function handleAsk(message: string) {
-    setLastQuestion(message);
-    
-    // Não fazemos o insert manual aqui para evitar duplicação.
-    // A Edge Function 'cronos-brain' já faz o insert do ai_insight com o userId.
-    brain.mutate({ 
-      message, 
-      profile, 
-      userId: user?.id 
-    }, {
-      onSuccess: () => {
-        // Delay necessário para a Edge Function terminar a escrita no banco
-        setTimeout(fetchHistory, 2000);
-      }
-    });
-  }
+  if (!message.trim()) return;
+  setLastQuestion(message);
+  
+  // LOG DE DEBUG: Verifique se o user.id aparece no seu console do navegador
+  console.log("Usuário logado disparando pergunta:", user?.id);
+
+  brain.mutate({ 
+    message, 
+    profile, 
+    userId: user?.id // Enviamos explicitamente para a Edge Function
+  }, {
+    onSuccess: () => {
+      setTimeout(fetchHistory, 2500); // Aumentamos um pouco o tempo para o banco processar
+    }
+  });
+}
 
   // View para Usuário Visitante (Landing Page)
   if (!user) {
