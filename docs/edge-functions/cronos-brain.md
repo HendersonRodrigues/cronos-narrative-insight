@@ -58,6 +58,7 @@ Campos de saida:
 
 - `answer` (string obrigatorio): texto exibido na UI, vindo de `data.choices[0].message.content`
 - Outros campos sao ignorados pelo frontend
+- O user_id será gravado na tabela
 
 ## 6) Contrato de Erro
 
