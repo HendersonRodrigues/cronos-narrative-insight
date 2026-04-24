@@ -51,54 +51,42 @@ export default function LeadCaptureModal({
     }
   }, [open]);
 
-  async function handleSubmit(e: React.FormEvent) {
+ async function handleSubmit(e: React.FormEvent) {
   e.preventDefault();
-  
-  // 1. Limpeza e Validação
+
   const trimmedName = name.trim();
   const digits = whatsapp.replace(/\D/g, "");
 
+  // 1. Validação Antecipada (Early Return)
   if (trimmedName.length < 3 || digits.length < 10) {
-    toast.error("Por favor, preencha nome e WhatsApp corretamente.");
+    toast.error("Por favor, preencha os dados corretamente.");
     return;
   }
 
-  // 2. Verificação do Cliente
   if (!supabase) {
-    console.error("❌ Erro: O cliente Supabase não foi inicializado (está nulo).");
-    toast.error("Erro de configuração no servidor. Tente novamente mais tarde.");
+    toast.error("Serviço indisponível no momento.");
     return;
   }
 
   setSubmitting(true);
 
+  // 2. Operação Principal
   try {
-    console.log("📡 Enviando para o Supabase...", { trimmedName, digits, opportunityTitle });
-
-    const { error, data } = await supabase
+    const { error } = await supabase
       .from('leads')
-      .insert([
-        { 
-          full_name: trimmedName, 
-          whatsapp: digits, 
-          opportunity_name: opportunityTitle,
-          status: 'novo' 
-        }
-      ])
-      .select(); // O .select() ajuda a confirmar que o dado foi criado
+      .insert({ 
+        full_name: trimmedName, 
+        whatsapp: digits, 
+        opportunity_name: opportunityTitle,
+        status: 'novo' 
+      });
 
-    if (error) {
-      console.error("🔥 Erro na query do Supabase:", error.message);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log("✅ Lead gravado com sucesso!", data);
     setSuccess(true);
     toast.success("Interesse registrado com sucesso!");
-
-  } catch (error: any) {
-    console.error("🕵️ Erro capturado:", error);
-    toast.error(error.message || "Erro ao enviar dados. Verifique sua conexão.");
+  } catch (err: any) {
+    toast.error("Falha ao registrar interesse. Tente novamente.");
   } finally {
     setSubmitting(false);
   }
