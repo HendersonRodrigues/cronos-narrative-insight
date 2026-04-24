@@ -27,22 +27,25 @@ const Index = () => {
 
   // Função para buscar histórico real do Supabase
   const fetchHistory = async () => {
-    if (!user) return;
-    setIsLoadingHistory(true);
-    
-    const { data, error } = await supabase
-      .from("user_analytics")
-      .select("query_text, selected_profile, payload, created_at")
-      .eq("user_id", user.id)
-      .eq("event_type", "ai_insight") // Filtra apenas respostas da IA
-      .order("created_at", { ascending: false })
-      .limit(5);
+  if (!user) return;
+  setIsLoadingHistory(true);
+  
+  const { data, error } = await supabase
+    .from("user_analytics")
+    .select("*")
+    .eq("user_id", user.id)
+    // Removemos o filtro rígido de event_type para teste ou usamos um 'in'
+    .in("event_type", ["ai_insight", "consultoria_query"]) 
+    .order("created_at", { ascending: false })
+    .limit(5);
 
-    if (!error && data) {
-      setRecentSearches(data);
-    }
-    setIsLoadingHistory(false);
-  };
+  if (!error && data) {
+    // Se for consultoria_query, talvez não tenha o 'answer' no payload, 
+    // então tratamos isso no mapeamento
+    setRecentSearches(data);
+  }
+  setIsLoadingHistory(false);
+};
 
   useEffect(() => {
     if (user) fetchHistory();
