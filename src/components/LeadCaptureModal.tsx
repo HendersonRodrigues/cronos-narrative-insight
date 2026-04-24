@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { CircleCheck as CheckCircle2, Loader as Loader2, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LeadCaptureModalProps {
   open: boolean;
@@ -33,6 +34,7 @@ export default function LeadCaptureModal({
   onOpenChange,
   opportunityTitle,
 }: LeadCaptureModalProps) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -51,46 +53,43 @@ export default function LeadCaptureModal({
     }
   }, [open]);
 
- async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
 
-  const trimmedName = name.trim();
-  const digits = whatsapp.replace(/\D/g, "");
+    const trimmedName = name.trim();
+    const digits = whatsapp.replace(/\D/g, "");
 
-  // 1. Validação Antecipada (Early Return)
-  if (trimmedName.length < 3 || digits.length < 10) {
-    toast.error("Por favor, preencha os dados corretamente.");
-    return;
-  }
+    if (trimmedName.length < 3 || digits.length < 10) {
+      toast.error("Por favor, preencha os dados corretamente.");
+      return;
+    }
 
-  if (!supabase) {
-    toast.error("Serviço indisponível no momento.");
-    return;
-  }
+    if (!supabase) {
+      toast.error("Serviço indisponível no momento.");
+      return;
+    }
 
-  setSubmitting(true);
+    setSubmitting(true);
 
-  // 2. Operação Principal
-  try {
-    const { error } = await supabase
-      .from('leads')
-      .insert({ 
-        full_name: trimmedName, 
-        whatsapp: digits, 
+    try {
+      const { error } = await supabase.from("leads").insert({
+        full_name: trimmedName,
+        whatsapp: digits,
         opportunity_name: opportunityTitle,
-        status: 'novo' 
+        status: "novo",
+        user_id: user?.id,
       });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    setSuccess(true);
-    toast.success("Interesse registrado com sucesso!");
-  } catch (err: any) {
-    toast.error("Falha ao registrar interesse. Tente novamente.");
-  } finally {
-    setSubmitting(false);
+      setSuccess(true);
+      toast.success("Interesse registrado com sucesso!");
+    } catch (err: any) {
+      toast.error("Falha ao registrar interesse. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   }
-}
 
 
   return (
