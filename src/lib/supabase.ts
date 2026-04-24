@@ -1,23 +1,20 @@
-import { createClient } from "@supabase/supabase-js";
-import {
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  IS_SUPABASE_CONFIGURED,
-} from "@/config/supabaseConfig";
+import { createClient } from '@supabase/supabase-js';
 
-if (!IS_SUPABASE_CONFIGURED) {
-  console.warn(
-    "⚠️ Supabase não configurado. Edite src/config/supabaseConfig.ts e cole suas credenciais, ou configure as Build Secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY. Usando dados mock como fallback."
-  );
-} else {
-  console.info("✅ Supabase configurado. Conectando ao projeto externo.");
+// 1. Captura as variáveis de ambiente com segurança
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// 2. Validação simples para evitar que o app quebre sem aviso
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("ERRO: Variáveis de ambiente do Supabase não encontradas!");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// 3. Inicializa o cliente com a persistência que você pediu
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
-    persistSession: true, // Mantém o usuário logado ao fechar o navegador
-    autoRefreshToken: true, // Renova o token automaticamente
+    persistSession: true,
+    storageKey: 'cronos-auth-token',
+    autoRefreshToken: true,
     detectSessionInUrl: true,
-    storageKey: 'cronos-auth-token', // Nome da chave no LocalStorage
   },
 });
