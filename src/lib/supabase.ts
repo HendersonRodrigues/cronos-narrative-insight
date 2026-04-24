@@ -13,6 +13,11 @@ if (!IS_SUPABASE_CONFIGURED) {
   console.info("✅ Supabase configurado. Conectando ao projeto externo.");
 }
 
-export const supabase = IS_SUPABASE_CONFIGURED
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true, // Mantém o usuário logado ao fechar o navegador
+    autoRefreshToken: true, // Renova o token automaticamente
+    detectSessionInUrl: true,
+    storageKey: 'cronos-auth-token', // Nome da chave no LocalStorage
+  },
+});
