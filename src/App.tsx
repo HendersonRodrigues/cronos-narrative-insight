@@ -11,6 +11,7 @@ import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Oportunidades from "./pages/Oportunidades.tsx";
 import Profile from "./pages/Profile.tsx";
+import Admin from "./pages/Admin.tsx"; // Você vai criar este arquivo
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            
             <Route
               path="/oportunidades"
               element={
@@ -34,6 +36,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            
             <Route
               path="/perfil"
               element={
@@ -44,7 +47,19 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+            {/* ROTA DE ADMIN PROTEGIDA */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <DashboardLayout>
+                    <Admin />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
