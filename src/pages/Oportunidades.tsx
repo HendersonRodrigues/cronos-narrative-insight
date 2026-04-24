@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import OpportunityCard from "@/components/OpportunityCard";
 import LeadCaptureModal from "@/components/LeadCaptureModal";
 import FooterFeed from "@/components/FooterFeed";
@@ -17,27 +15,7 @@ export default function Oportunidades() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Top bar */}
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-foreground/80 hover:text-foreground"
-          >
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Link>
-          </Button>
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            Cronos · Curadoria
-          </span>
-        </div>
-      </header>
-
+    <div className="min-h-[calc(100vh-73px)] flex flex-col bg-background">
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden border-b border-border/40">

@@ -1,30 +1,16 @@
 /**
- * 🔌 Configuração do Supabase Externo (Cronos Project)
+ * Supabase config loaded from environment variables only.
  *
- * Cole aqui as credenciais do seu projeto Supabase.
- * A chave `anon` é PÚBLICA por design (protegida por RLS no banco),
- * então é seguro mantê-la no código-fonte.
+ * Local development:
+ * - Set values in `.env` (ignored by git)
+ * - Use `.env.example` as template
  *
- * Onde encontrar:
- *   Supabase Dashboard → Project Settings → API
- *   - Project URL  → SUPABASE_URL
- *   - anon public  → SUPABASE_ANON_KEY
- *
- * Prioridade de leitura:
- *   1. Build Secrets (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — se configuradas
- *   2. Valores hardcoded abaixo — fallback manual
- *   3. Modo Mock — se nada estiver preenchido
+ * CI/production:
+ * - Set the same variables in your secret manager/build settings
  */
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-// 👇 COLE SUAS CREDENCIAIS AQUI 👇
-const HARDCODED_SUPABASE_URL = "https://wfyereifmxdvakxaxplq.supabase.co"; // ex: "https://xxxxxxxx.supabase.co"
-const HARDCODED_SUPABASE_ANON_KEY = "sb_publishable_UWqbLVaa_YdYHdSMc0ty5w_UgfVL_xM"; // ex: "eyJhbGciOiJIUzI1NiIs..."
-
-export const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL || HARDCODED_SUPABASE_URL;
-
-export const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || HARDCODED_SUPABASE_ANON_KEY;
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const IS_SUPABASE_CONFIGURED = Boolean(
   SUPABASE_URL && SUPABASE_ANON_KEY
