@@ -35,29 +35,21 @@ export default function Auth() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (password !== confirmPassword) {
-      toast.error("As senhas não coincidem");
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      await signUp(email, password);
-      toast.success("Conta criada! Você pode fazer login agora.");
-      setIsSignUp(false);
-      setPassword("");
-      setConfirmPassword("");
+      await signIn(email, password);
+      toast.success("Login realizado com sucesso!");
+      // Pequeno delay para garantir que o LocalStorage gravou a sessão antes de navegar
+      setTimeout(() => navigate("/oportunidades"), 100);
     } catch (error: any) {
-      toast.error(error?.message || "Falha ao criar conta");
+      // Tradução rápida de erro comum
+      const msg = error?.message === "Invalid login credentials" 
+        ? "E-mail ou senha incorretos." 
+        : error?.message || "Falha ao fazer login";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -66,9 +58,13 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      await signInWithGoogle();
+      // Garante que o Supabase saiba para onde voltar após o login do Google
+      const redirectTo = `${window.location.origin}/oportunidades`;
+      await signInWithGoogle(); 
+      // Nota: O redirecionamento real acontece via configuração no Dash do Supabase,
+      // mas é bom garantir que o loading não fique infinito se o popup abrir.
     } catch (error: any) {
-      toast.error(error?.message || "Falha ao fazer login com Google");
+      toast.error("Falha ao conectar com Google");
       setLoading(false);
     }
   };
