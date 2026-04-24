@@ -49,15 +49,24 @@ const Index = () => {
   }, [user]);
 
   function handleAsk(message: string) {
-    setLastQuestion(message);
-    // ... manter lógica de insert existente ...
-    brain.mutate({ message, profile }, {
-      onSuccess: () => {
-        // Atualiza o histórico após a IA responder
-        setTimeout(fetchHistory, 1500);
-      }
+  setLastQuestion(message);
+  
+  if (user && supabase) {
+    // IMPORTANTE: Garantir que o user_id seja enviado
+    supabase.from("user_analytics").insert({
+      user_id: user.id, // Aqui está a chave!
+      query_text: message,
+      selected_profile: profile,
+      event_type: "consultoria_query", // Log da pergunta
+      session_id: sessionId,
+      payload: { source: "home_chat" },
+    }).then(({ error }) => {
+      if (error) console.error("Erro ao logar consulta:", error.message);
     });
   }
+  
+  brain.mutate({ message, profile });
+}
 
   // Layout para usuário NÃO Logado (mantido)
   if (!user) {
