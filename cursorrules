@@ -1,0 +1,17 @@
+# Regras de Desenvolvimento - Projeto Cronos
+
+## Contexto Técnico
+- Framework: React (Vite) + TypeScript.
+- Estilização: Tailwind CSS + Shadcn/UI.
+- Banco de Dados & Auth: Supabase.
+
+## Regras de Banco de Dados (IMPORTANTE)
+- Todas as tabelas (`leads`, `profiles`) possuem RLS (Row Level Security) habilitado.
+- É OBRIGATÓRIO incluir a coluna `user_id` em novas inserções na tabela `leads`.
+- O `user_id` deve ser obtido via `supabase.auth.getUser()`.
+- O arquivo de conexão oficial é `src/lib/supabase.ts`.
+
+## Padrões de Código
+- Sempre use o componente `Button` do Shadcn UI para ações principais.
+- Mantenha funções assíncronas limpas, usando `try/catch/finally` e `toast` para feedback ao usuário.
+- Siga a estrutura de pastas atual: `/src/components`, `/src/pages`, `/src/lib`.
