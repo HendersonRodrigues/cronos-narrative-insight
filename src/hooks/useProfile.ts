@@ -31,15 +31,9 @@ export function useProfile() {
 
   const setProfile = useCallback(
     (next: ProfileType) => {
-      setProfileState((prev) => {
-        if (prev !== next) {
-          // fire-and-forget log
-          logProfileChange({ session_id: sessionId, from: prev, to: next });
-        }
-        return next;
-      });
+      setProfileState(next); // Apenas atualiza o estado, sem disparar insert no banco
     },
-    [sessionId],
+    [],
   );
 
   return { profile, setProfile, sessionId };
