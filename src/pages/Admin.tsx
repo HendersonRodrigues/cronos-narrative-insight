@@ -64,6 +64,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import EmptyState from "@/components/EmptyState";
 
 interface LeadRow {
   id: string;
