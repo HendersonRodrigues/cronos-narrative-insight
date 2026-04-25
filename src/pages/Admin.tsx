@@ -274,6 +274,14 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="questions">
+          <QuestionsManager />
+        </TabsContent>
+
+        <TabsContent value="opportunities">
+          <OpportunitiesManager />
+        </TabsContent>
       </Tabs>
     </div>
   );
