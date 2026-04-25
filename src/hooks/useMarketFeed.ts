@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { MarketDataPoint } from "@/types/cronos";
+import {
+  logIntegrationEvent,
+  reportIntegrationError,
+} from "@/services/integrationHealth";
 
 async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
   if (!supabase) throw new Error("Supabase não configurado");
@@ -10,8 +14,26 @@ async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
     .order("date", { ascending: false })
     .order("id", { ascending: false })
     .limit(1200);
-  if (error) throw error;
-  return (data as MarketDataPoint[] | null) ?? [];
+
+  if (error) {
+    // Registra falha de integração antes de propagar
+    void reportIntegrationError("market_data", error, {
+      status_code: (error as { status?: number }).status ?? null,
+      context: { hint: "fetch market feed" },
+    });
+    throw error;
+  }
+
+  const rows = (data as MarketDataPoint[] | null) ?? [];
+  // Marca sucesso quando há leitura válida (assim o badge volta a verde)
+  if (rows.length > 0) {
+    void logIntegrationEvent({
+      service_name: "market_data",
+      status: "ok",
+      context: { rows: rows.length },
+    });
+  }
+  return rows;
 }
 
 export function useMarketFeed() {
