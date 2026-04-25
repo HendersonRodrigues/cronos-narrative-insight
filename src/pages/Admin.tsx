@@ -197,8 +197,9 @@ export default function Admin() {
                 <LoadingState label="Carregando leads..." />
               ) : leads.length === 0 ? (
                 <EmptyState
-                  icon={<MessageSquare className="h-8 w-8" />}
-                  label="Nenhum lead capturado ainda."
+                  icon={<MessageSquare className="h-5 w-5" />}
+                  title="Nenhum lead capturado ainda"
+                  description="Os primeiros interesses cadastrados aparecerão nesta lista."
                 />
               ) : (
                 <Table>
@@ -251,8 +252,9 @@ export default function Admin() {
                 <LoadingState label="Carregando consultas..." />
               ) : insights.length === 0 ? (
                 <EmptyState
-                  icon={<Sparkles className="h-8 w-8" />}
-                  label="Nenhuma consulta registrada ainda."
+                  icon={<Sparkles className="h-5 w-5" />}
+                  title="Nenhuma consulta registrada"
+                  description="Quando os usuários consultarem o Cronos Brain, as perguntas aparecerão aqui."
                 />
               ) : (
                 <Table>
@@ -331,15 +333,6 @@ function LoadingState({ label }: { label: string }) {
     <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground text-sm">
       <Loader2 className="h-4 w-4 animate-spin" />
       {label}
-    </div>
-  );
-}
-
-function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
-      {icon}
-      <p className="text-sm">{label}</p>
     </div>
   );
 }
