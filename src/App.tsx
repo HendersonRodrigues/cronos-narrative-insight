@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Skeleton } from "@/components/ui/skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -57,48 +58,50 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
+          <ErrorBoundary serviceName="ui:root">
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
 
-              <Route
-                path="/oportunidades"
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Oportunidades />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/oportunidades"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <Oportunidades />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/perfil"
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Profile />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/perfil"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <Profile />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin: code-split + protegido por role */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <DashboardLayout>
-                      <Admin />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin: code-split + protegido por role */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <DashboardLayout>
+                        <Admin />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
