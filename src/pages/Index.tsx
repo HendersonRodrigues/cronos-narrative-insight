@@ -82,16 +82,23 @@ const Index = () => {
     );
   }
 
-  return (
-    <DashboardLayout>
-      <div className="min-h-[calc(100vh-73px)] flex flex-col bg-background">
-        <main className="container max-w-[1200px] mx-auto flex-1 px-4 py-8 space-y-8">
-          <section className="space-y-1">
-            <h1 className="font-display text-3xl font-semibold tracking-tight italic">
-              Boas-vindas, {user.email?.split('@')[0]}
-            </h1>
-            <p className="text-muted-foreground">Analise o mercado com precisão estratégica.</p>
-          </section>
+{/* Lógica de Saudação:
+   1. Tenta o nome no perfil
+   2. Se não houver, tenta o email completo
+   3. Se não houver (raro), usa "Investidor"
+*/}
+const welcomeName = profile?.full_name || user?.email || "Investidor";
+
+return (
+  <DashboardLayout>
+    <div className="min-h-[calc(100vh-73px)] flex flex-col bg-background">
+      <main className="container max-w-[1200px] mx-auto flex-1 px-4 py-8 space-y-8">
+        <section className="space-y-1">
+          <h1 className="font-display text-3xl font-semibold tracking-tight italic">
+            Boas-vindas, {welcomeName}
+          </h1>
+          <p className="text-muted-foreground">Analise o mercado com precisão estratégica.</p>
+        </section>
 
           {/* Grid de Histórico Real */}
           <section className="space-y-4">
