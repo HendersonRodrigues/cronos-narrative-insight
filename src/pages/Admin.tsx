@@ -330,3 +330,282 @@ function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// QuestionsManager — CRUD de app_questions
+// ---------------------------------------------------------------------------
+function QuestionsManager() {
+  const { data, loading, error, add, toggle } = useAdminQuestions();
+  const { toast } = useToast();
+  const [text, setText] = useState("");
+  const [category, setCategory] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    setSubmitting(true);
+    try {
+      await add({
+        text: text.trim(),
+        category: category.trim() || null,
+        is_active: true,
+        order_index: 0,
+      });
+      setText("");
+      setCategory("");
+      toast({ title: "Pergunta adicionada com sucesso." });
+    } catch (e) {
+      toast({
+        title: "Erro ao adicionar",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader>
+        <CardTitle>Perguntas do app</CardTitle>
+        <CardDescription>
+          Gerencie as perguntas dinâmicas exibidas para os usuários.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <form onSubmit={handleAdd} className="grid gap-3 md:grid-cols-[1fr_200px_auto]">
+          <div className="space-y-1.5">
+            <Label htmlFor="q-text">Texto da pergunta</Label>
+            <Input
+              id="q-text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Ex.: Qual seu objetivo de investimento?"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="q-cat">Categoria</Label>
+            <Input
+              id="q-cat"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="Opcional"
+            />
+          </div>
+          <Button type="submit" disabled={submitting} className="self-end gap-1.5">
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            Adicionar
+          </Button>
+        </form>
+
+        {loading ? (
+          <LoadingState label="Carregando perguntas..." />
+        ) : error ? (
+          <EmptyState icon={<HelpCircle className="h-8 w-8" />} label={error} />
+        ) : data.length === 0 ? (
+          <EmptyState
+            icon={<HelpCircle className="h-8 w-8" />}
+            label="Nenhuma pergunta cadastrada."
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pergunta</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead className="w-[120px]">Ativa</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="text-sm">{row.text}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px] uppercase">
+                      {row.category ?? "—"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={row.is_active}
+                      onCheckedChange={(v) => toggle(row.id, v)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OpportunitiesManager — CRUD de investment_opportunities
+// ---------------------------------------------------------------------------
+function OpportunitiesManager() {
+  const { data, loading, error, add, toggle } = useAdminOpportunities();
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [returnRate, setReturnRate] = useState("");
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>("medio");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSubmitting(true);
+    try {
+      await add({
+        name: name.trim(),
+        description: description.trim() || null,
+        return_rate: returnRate ? Number(returnRate) / 100 : null,
+        risk_level: riskLevel,
+        is_active: true,
+        category: null,
+        min_investment: null,
+      });
+      setName("");
+      setDescription("");
+      setReturnRate("");
+      setRiskLevel("medio");
+      toast({ title: "Oportunidade criada com sucesso." });
+    } catch (e) {
+      toast({
+        title: "Erro ao criar oportunidade",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader>
+        <CardTitle>Oportunidades de investimento</CardTitle>
+        <CardDescription>
+          Catálogo exibido na página de diversificação estratégica.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <form onSubmit={handleAdd} className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="o-name">Nome</Label>
+            <Input
+              id="o-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex.: Consórcio Estruturado"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="o-rate">Retorno esperado (% a.a.)</Label>
+            <Input
+              id="o-rate"
+              type="number"
+              step="0.01"
+              value={returnRate}
+              onChange={(e) => setReturnRate(e.target.value)}
+              placeholder="Ex.: 18"
+            />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="o-desc">Descrição</Label>
+            <Textarea
+              id="o-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Resumo executivo da oportunidade..."
+              rows={3}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="o-risk">Nível de risco</Label>
+            <Select
+              value={riskLevel}
+              onValueChange={(v) => setRiskLevel(v as RiskLevel)}
+            >
+              <SelectTrigger id="o-risk">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="baixo">Baixo</SelectItem>
+                <SelectItem value="medio">Médio</SelectItem>
+                <SelectItem value="alto">Alto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="self-end gap-1.5 md:col-start-2"
+          >
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            Adicionar oportunidade
+          </Button>
+        </form>
+
+        {loading ? (
+          <LoadingState label="Carregando oportunidades..." />
+        ) : error ? (
+          <EmptyState icon={<Briefcase className="h-8 w-8" />} label={error} />
+        ) : data.length === 0 ? (
+          <EmptyState
+            icon={<Briefcase className="h-8 w-8" />}
+            label="Nenhuma oportunidade cadastrada."
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Risco</TableHead>
+                <TableHead>Retorno</TableHead>
+                <TableHead className="w-[120px]">Ativa</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px] uppercase">
+                      {row.risk_level}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.return_rate != null
+                      ? `${(row.return_rate * 100).toFixed(2)}%`
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={row.is_active}
+                      onCheckedChange={(v) => toggle(row.id, v)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
