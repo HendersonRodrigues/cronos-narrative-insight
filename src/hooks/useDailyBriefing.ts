@@ -7,6 +7,7 @@ async function fetchLatestBriefing(): Promise<DailyBriefing | null> {
   const { data, error } = await supabase
     .from("daily_briefing")
     .select("*")
+    .eq("status", "published")
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(1)

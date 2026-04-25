@@ -7,6 +7,12 @@ export interface DailyBriefing {
   title: string;
   content: string;
   profile_type: string;
+  status?: string;
+  market_sentiment?: string | null;
+  trade_setup?: string | null;
+  details_content?: string | null;
+  deep_analysis?: string | null;
+  assets_linked?: string[] | null;
 }
 
 export interface MarketDataPoint {

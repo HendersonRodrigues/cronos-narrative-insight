@@ -45,15 +45,12 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-const SYSTEM_PROMPT = `Você é um extrator de conteúdo financeiro para a plataforma Cronos.
+const SYSTEM_PROMPT_BASE = `Você é um extrator de conteúdo financeiro para a plataforma Cronos.
 Receberá um TEXTO BRUTO (relatório, análise, transcrição) e deve mapear o conteúdo
 nos campos da ferramenta 'extract_admin_insight'.
 
-REGRAS:
+REGRAS GERAIS:
 - Português (Brasil). Não invente fatos: use apenas o que está no texto.
-- 'summary': Resumo didático de no máximo 4 linhas (Regra da Avó). Termine com
-  "Ponte Tática: [estudo]" se houver gancho educacional claro; caso contrário,
-  finalize com uma frase curta de orientação. Sem recomendação de compra/venda.
 - 'details_content': Tudo que estiver após o marcador [DETALHES] no texto, se
   existir. Se não houver marcador, sintetize aqui o conteúdo de apoio (dados,
   números, contexto) que NÃO entrou no summary.
@@ -67,6 +64,21 @@ REGRAS:
 
 PROIBIDO:
 - Saudações, recomendações diretas de compra/venda, especulação fora do texto.`;
+
+const SUMMARY_RULES = {
+  briefing: `- 'summary': BRIEFING DIÁRIO. Tom leve, direto, focado em acontecimentos de
+  CURTO PRAZO e ideias para o dia (Day Trade). Máximo 4 linhas. Destaque o
+  que move o mercado HOJE (notícia macro, dado econômico, gatilho técnico).
+  Sem jargão pesado no resumo. Termine com uma frase tática rápida do tipo
+  "Olho do dia: [setup/cenário]" — sem recomendação de compra ou venda.`,
+  opportunity: `- 'summary': TESE DE OPORTUNIDADE. Resumo didático de até 4 linhas (Regra
+  da Avó), focado em médio/longo prazo. Termine com "Ponte Tática: [estudo]"
+  para indicar próximo passo de aprofundamento. Sem recomendação direta.`,
+};
+
+function buildSystemPrompt(target: "briefing" | "opportunity"): string {
+  return `${SYSTEM_PROMPT_BASE}\n\nREGRA DE RESUMO:\n${SUMMARY_RULES[target]}`;
+}
 
 const TOOL_SCHEMA = {
   type: "function",
@@ -98,6 +110,21 @@ const TOOL_SCHEMA = {
           description:
             "Ativos canônicos mencionados (ex.: Dólar, Selic, IPCA, Ibovespa).",
         },
+        title: {
+          type: "string",
+          description:
+            "Título curto (até 80 caracteres) para o card. Em briefing, use a manchete do dia. Em opportunity, o nome da tese.",
+        },
+        market_sentiment: {
+          type: "string",
+          description:
+            "Sentimento de mercado em uma palavra/curta frase (ex.: 'risk-on', 'aversão', 'lateralizado'). Aplicável principalmente a briefing.",
+        },
+        trade_setup: {
+          type: "string",
+          description:
+            "Setup operacional para o dia (ex.: gatilhos técnicos, suportes/resistências, eventos). Apenas para briefing.",
+        },
       },
       required: ["summary", "details_content", "deep_analysis", "assets_linked"],
       additionalProperties: false,
@@ -110,6 +137,9 @@ interface ExtractedInsight {
   details_content: string;
   deep_analysis: string;
   assets_linked: string[];
+  title?: string;
+  market_sentiment?: string;
+  trade_setup?: string;
 }
 
 function normalizeAssets(items: unknown): string[] {
@@ -144,6 +174,13 @@ function parseToolCall(data: unknown): ExtractedInsight | null {
       details_content: String(parsed.details_content ?? "").trim(),
       deep_analysis: String(parsed.deep_analysis ?? "").trim(),
       assets_linked: normalizeAssets(parsed.assets_linked),
+      title: parsed.title ? String(parsed.title).trim() : undefined,
+      market_sentiment: parsed.market_sentiment
+        ? String(parsed.market_sentiment).trim()
+        : undefined,
+      trade_setup: parsed.trade_setup
+        ? String(parsed.trade_setup).trim()
+        : undefined,
     };
   } catch {
     return null;
@@ -213,6 +250,9 @@ serve(async (req) => {
         ? body.model.trim()
         : DEFAULT_MODEL;
 
+    const target: "briefing" | "opportunity" =
+      body?.target === "briefing" ? "briefing" : "opportunity";
+
     // 4) Chamada ao Lovable AI Gateway com tool calling
     const aiRes = await fetch(AI_GATEWAY_URL, {
       method: "POST",
@@ -223,7 +263,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: buildSystemPrompt(target) },
           { role: "user", content: rawText },
         ],
         tools: [TOOL_SCHEMA],
@@ -263,7 +303,7 @@ serve(async (req) => {
       );
     }
 
-    return jsonResponse({ extracted, model });
+    return jsonResponse({ extracted, model, target });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro interno.";
     console.error("process-admin-insight error:", message);
