@@ -24,29 +24,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Busca o role mais alto da tabela user_roles (segura, separada de profiles).
-  // Defere a chamada para evitar deadlock dentro do listener do Supabase.
+  /**
+   * Resolve o role do usuário usando a função RPC `has_role` (SECURITY DEFINER).
+   *
+   * Por que RPC em vez de SELECT direto?
+   * - Evita recursão de RLS quando políticas de outras tabelas chamam has_role.
+   * - Não depende de policies de leitura em `user_roles` para o próprio usuário.
+   * - Resiliente: qualquer erro/ausência da função => fallback "user".
+   *
+   * Defere a chamada com setTimeout para evitar deadlock dentro do
+   * callback síncrono de `onAuthStateChange`.
+   */
   const fetchUserRole = async (userId: string) => {
     if (!supabase) return;
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
+      const checkRole = async (role: AppRole) => {
+        const { data, error } = await supabase.rpc("has_role", {
+          _user_id: userId,
+          _role: role,
+        });
+        if (error) throw error;
+        return Boolean(data);
+      };
 
-      if (error) {
-        // Tabela ainda não criada ou sem permissão — usuário comum por padrão.
-        console.warn("[Auth] user_roles indisponível:", error.message);
-        setUserRole("user");
+      if (await checkRole("admin")) {
+        setUserRole("admin");
         return;
       }
-
-      const roles = (data ?? []).map((r) => r.role as AppRole);
-      if (roles.includes("admin")) setUserRole("admin");
-      else if (roles.includes("moderator")) setUserRole("moderator");
-      else setUserRole("user");
+      if (await checkRole("moderator")) {
+        setUserRole("moderator");
+        return;
+      }
+      setUserRole("user");
     } catch (err) {
-      console.error("[Auth] Erro ao buscar role:", err);
+      // RPC ausente ou sem permissão — degrada para usuário comum.
+      console.warn(
+        "[Auth] has_role indisponível, assumindo 'user':",
+        (err as Error)?.message,
+      );
       setUserRole("user");
     }
   };
