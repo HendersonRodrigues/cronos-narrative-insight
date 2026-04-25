@@ -67,6 +67,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import EmptyState from "@/components/EmptyState";
 import SmartPasteManager from "@/components/admin/SmartPasteManager";
+import SystemHealthBadge from "@/components/admin/SystemHealthBadge";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface LeadRow {
   id: string;
@@ -147,13 +149,20 @@ export default function Admin() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-display font-bold tracking-tight">
-          Painel de Controle
-        </h1>
-        <p className="text-muted-foreground">
-          Métricas em tempo real da Cronos — usuários, leads e consultas à IA.
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-display font-bold tracking-tight">
+            Painel de Controle
+          </h1>
+          <p className="text-muted-foreground">
+            Métricas em tempo real da Cronos — usuários, leads e consultas à IA.
+          </p>
+        </div>
+        <div className="w-full md:w-[360px]">
+          <ErrorBoundary serviceName="ui:health-badge">
+            <SystemHealthBadge />
+          </ErrorBoundary>
+        </div>
       </div>
 
       {/* Cards de Métricas */}
@@ -305,7 +314,9 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="smart-paste">
-          <SmartPasteManager />
+          <ErrorBoundary serviceName="ui:smart-paste">
+            <SmartPasteManager />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

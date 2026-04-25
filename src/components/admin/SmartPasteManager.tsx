@@ -57,6 +57,7 @@ import {
   Activity,
   TrendingUp,
 } from "lucide-react";
+import StaleAssetsWarning from "./StaleAssetsWarning";
 
 type Target = "briefing" | "opportunity";
 type Mode = "create" | "update";
@@ -430,6 +431,7 @@ export default function SmartPasteManager() {
 
       {result && (
         <>
+          <StaleAssetsWarning assetsLinked={result.assets_linked ?? []} />
           <PreviewSandbox extracted={result} target={target} />
 
           <Card className="border-border/60">
