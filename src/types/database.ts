@@ -13,6 +13,19 @@
  */
 
 // ---------------------------------------------------------------------------
+// profiles — dados cadastrais do usuário (metadados)
+// ---------------------------------------------------------------------------
+
+export interface ProfileDataRow {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  email: string | null;
+  updated_at: string | null;
+  created_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Roles
 // ---------------------------------------------------------------------------
 

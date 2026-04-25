@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import type { ProfileDataRow } from "@/types/database";
 
 export type AppRole = "admin" | "moderator" | "user";
 
@@ -9,6 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: AppRole | null;
   isAdmin: boolean;
+  profileData: ProfileDataRow | null;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -22,7 +24,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
+  const [profileData, setProfileData] = useState<ProfileDataRow | null>(null);
   const [loading, setLoading] = useState(true);
+
+  /**
+   * Busca dados cadastrais (full_name, avatar_url, etc.) da tabela `profiles`.
+   * Resiliente: se a tabela não existir ou houver erro de RLS, mantém null
+   * sem quebrar o fluxo de autenticação.
+   */
+  const fetchProfileData = async (userId: string) => {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, email, updated_at, created_at")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      setProfileData((data as ProfileDataRow) ?? null);
+    } catch (err) {
+      console.warn(
+        "[Auth] profiles indisponível:",
+        (err as Error)?.message,
+      );
+      setProfileData(null);
+    }
+  };
 
   /**
    * Resolve o role do usuário usando a função RPC `has_role` (SECURITY DEFINER).
@@ -79,9 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (nextSession?.user) {
         // Defer para evitar deadlock dentro do callback síncrono.
-        setTimeout(() => fetchUserRole(nextSession.user.id), 0);
+        setTimeout(() => {
+          fetchUserRole(nextSession.user.id);
+          fetchProfileData(nextSession.user.id);
+        }, 0);
       } else {
         setUserRole(null);
+        setProfileData(null);
       }
       setLoading(false);
     });
@@ -91,7 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(initial ?? null);
       setUser(initial?.user ?? null);
       if (initial?.user) {
-        setTimeout(() => fetchUserRole(initial.user.id), 0);
+        setTimeout(() => {
+          fetchUserRole(initial.user.id);
+          fetchProfileData(initial.user.id);
+        }, 0);
       }
       setLoading(false);
     });
@@ -141,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         userRole,
         isAdmin,
+        profileData,
         loading,
         signUp,
         signIn,
