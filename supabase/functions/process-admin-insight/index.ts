@@ -110,6 +110,21 @@ const TOOL_SCHEMA = {
           description:
             "Ativos canônicos mencionados (ex.: Dólar, Selic, IPCA, Ibovespa).",
         },
+        title: {
+          type: "string",
+          description:
+            "Título curto (até 80 caracteres) para o card. Em briefing, use a manchete do dia. Em opportunity, o nome da tese.",
+        },
+        market_sentiment: {
+          type: "string",
+          description:
+            "Sentimento de mercado em uma palavra/curta frase (ex.: 'risk-on', 'aversão', 'lateralizado'). Aplicável principalmente a briefing.",
+        },
+        trade_setup: {
+          type: "string",
+          description:
+            "Setup operacional para o dia (ex.: gatilhos técnicos, suportes/resistências, eventos). Apenas para briefing.",
+        },
       },
       required: ["summary", "details_content", "deep_analysis", "assets_linked"],
       additionalProperties: false,
@@ -122,6 +137,9 @@ interface ExtractedInsight {
   details_content: string;
   deep_analysis: string;
   assets_linked: string[];
+  title?: string;
+  market_sentiment?: string;
+  trade_setup?: string;
 }
 
 function normalizeAssets(items: unknown): string[] {
@@ -156,6 +174,13 @@ function parseToolCall(data: unknown): ExtractedInsight | null {
       details_content: String(parsed.details_content ?? "").trim(),
       deep_analysis: String(parsed.deep_analysis ?? "").trim(),
       assets_linked: normalizeAssets(parsed.assets_linked),
+      title: parsed.title ? String(parsed.title).trim() : undefined,
+      market_sentiment: parsed.market_sentiment
+        ? String(parsed.market_sentiment).trim()
+        : undefined,
+      trade_setup: parsed.trade_setup
+        ? String(parsed.trade_setup).trim()
+        : undefined,
     };
   } catch {
     return null;
