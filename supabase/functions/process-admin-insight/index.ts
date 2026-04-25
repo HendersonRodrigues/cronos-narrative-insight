@@ -250,6 +250,9 @@ serve(async (req) => {
         ? body.model.trim()
         : DEFAULT_MODEL;
 
+    const target: "briefing" | "opportunity" =
+      body?.target === "briefing" ? "briefing" : "opportunity";
+
     // 4) Chamada ao Lovable AI Gateway com tool calling
     const aiRes = await fetch(AI_GATEWAY_URL, {
       method: "POST",
@@ -260,7 +263,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: buildSystemPrompt(target) },
           { role: "user", content: rawText },
         ],
         tools: [TOOL_SCHEMA],
