@@ -62,11 +62,12 @@ export interface AppQuestionRow {
 
 export type AppQuestionInsert = Omit<
   AppQuestionRow,
-  "id" | "created_at" | "updated_at"
+  "id" | "created_at" | "updated_at" | "status"
 > & {
   id?: string;
   created_at?: string;
   updated_at?: string | null;
+  status?: ContentStatus | string;
 };
 
 // ---------------------------------------------------------------------------
@@ -122,11 +123,27 @@ export type DailyBriefingInsert = Omit<DailyBriefingRow, "id" | "created_at"> & 
 
 export type InvestmentOpportunityInsert = Omit<
   InvestmentOpportunityRow,
-  "id" | "created_at" | "updated_at"
+  | "id"
+  | "created_at"
+  | "updated_at"
+  | "status"
+  | "is_archived"
+  | "summary"
+  | "details_content"
+  | "deep_analysis"
+  | "assets_linked"
+  | "author_id"
 > & {
   id?: string;
   created_at?: string;
   updated_at?: string | null;
+  status?: ContentStatus | string;
+  is_archived?: boolean;
+  summary?: string | null;
+  details_content?: string | null;
+  deep_analysis?: string | null;
+  assets_linked?: string[] | null;
+  author_id?: string | null;
 };
 
 // ---------------------------------------------------------------------------
