@@ -1,14 +1,58 @@
-Status Atual do Projeto Cronos
-Captura de Leads: Funcionando em LeadCaptureModal.tsx.
+# Project Documentation
 
-Conexão Supabase: Centralizada em src/lib/supabase.ts (variáveis em src/config/supabaseConfig.ts).
+## Project Overview
+This project is designed to provide narrative insights through data visualization and detailed analytics.
 
-Segurança (RLS): Implementada no banco. A tabela leads exige user_id vinculado a um usuário autenticado.
+## Architecture
+The architecture is built on a microservices approach, ensuring scalability and maintainability.
 
-Tabelas:
+## Folder Structure
+```
+project/
+│
+├── src/                # Source code
+│   ├── services/       # Microservices
+│   ├── components/     # Reusable components
+│   └── utils/          # Utility functions
+│
+├── tests/              # Unit and integration tests
+├── docs/               # Documentation files
+├── config/             # Configuration files
+└── README.md           # Project overview
+```
 
-leads: Captura nome, whatsapp e oportunidade.
+## Setup Instructions
+1. Clone the repository: `git clone https://github.com/HendersonRodrigues/cronos-narrative-insight.git`
+2. Navigate into the directory: `cd cronos-narrative-insight`
+3. Install dependencies: `npm install`
+4. Set up environment variables by copying the `.env.sample` to `.env` and updating with your configurations.
 
-profiles: Criada e com trigger automática para novos usuários.
+## Development Guide
+- Follow branching strategy: use feature branches for new features.
+- Always write tests for new functionalities.
 
-Infra: Deploy automático via Vercel conectado ao branch main do GitHub.
+## Database Schema
+The application uses a relational database schema.
+- **Users Table**: stores user information.
+- **Insights Table**: stores narrative insights generated from data analysis.
+
+## API Integration
+The application exposes RESTful APIs for:  
+- Data submission  
+- Insight retrieval  
+- User management
+
+## Authentication
+Uses OAuth for authentication. Ensure you register your application to obtain client keys.
+
+## Deployment
+1. Build the application: `npm run build`
+2. Deploy to your server or cloud provider of choice.
+
+## Troubleshooting
+- Check logs for errors.  
+- Ensure all environment variables are set correctly.
+
+## Best Practices
+- Keep dependencies updated.  
+- Regularly review code quality.
