@@ -644,11 +644,14 @@ function OpportunitiesManager() {
         {loading ? (
           <LoadingState label="Carregando oportunidades..." />
         ) : error ? (
-          <EmptyState icon={<Briefcase className="h-8 w-8" />} label={error} />
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<Briefcase className="h-8 w-8" />}
-            label="Nenhuma oportunidade cadastrada."
+            icon={<Briefcase className="h-5 w-5" />}
+            title="Nenhuma oportunidade cadastrada"
+            description="Adicione a primeira oportunidade no formulário acima para que apareça em /oportunidades."
           />
         ) : (
           <Table>
