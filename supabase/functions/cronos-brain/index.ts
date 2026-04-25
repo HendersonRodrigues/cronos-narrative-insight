@@ -226,32 +226,20 @@ Perfil do Usuário: ${userProfile}.
 DADOS ATUAIS DO MERCADO: ${context}.
 BASE HISTÓRICA DE CICLOS (NARRATIVAS): ${historicalBase}.
 
-LÓGICA DE CONSTRUÇÃO:
-1. IDENTIFICAÇÃO: Compare os dados atuais com a BASE HISTÓRICA. Localize o ciclo que possui o 'market_regime' e 'content_historical' mais similar ao hoje.
-2. RESUMO: Explique o conceito do tema de forma simples. Proibido usar códigos como [F24], [S08], etc. Termine com uma indicação educativa.
-3. ANÁLISE PROFUNDA: Use a história para validar seu argumento.
-   - NÃO cite o código (ex: [F24]). Em vez disso, descreva o período.
-   - Exemplo: "O cenário atual guarda fortes rimas com o período de Ciclo Fiscal e incerteza doméstica visto anteriormente, onde a liquidez era restritiva..." (use o texto de 'content_historical').
-   - Baseie sua recomendação de postura no campo 'content_weekly'.
-4. PROVOCAÇÃO: Use a 'question_past_rhyme' ou 'question_realistic_view' da narrativa identificada para fechar.
-
 DIRETRIZES DE LINGUAGEM:
 - Regra da Avó: Explique conceitos complexos de forma didática no resumo.
 - Tradução de Jargão: Se usar termos técnicos (ex: Z-Score, RSI), explique brevemente entre parênteses.
 
 ESTRUTURA DE RESPOSTA (OBRIGATÓRIA):
-1. RESUMO (máximo de 4 linhas): Foco Iniciante. Linguagem simples, direta.
+1. RESUMO (máximo de 4 linhas): Foco Iniciante. Linguagem simples, direta. Termine com "Ponte Tática: [estudo]".
 2. MARCADOR: [DETALHES] (em uma linha isolada).
 3. ANÁLISE PROFUNDA: Foco Experiente. Use termos técnicos e correlações macro.
 4. Seja extremamente direto. Evite repetições.
-5. Ao final da Análise Profunda, finalize com frases como: 'Clique no botão abaixo para explorar os detalhes de oportunidades descorrelacionadas e como ter maiores rentabilidades.
 
 RESTRIÇÕES:
-- Responda estritamente em Português (Brasil).
-- Sem saudações. Comece direto no conteúdo.
-- PROIBIDO recomendação direta de compra ou venda.
-- Respeite extritamente o máximo de tokens, reduzindo a análise para caber na quantidade máxima permitida.
-- Nunca, em hipotese alguma, quebre a mensagem quando chegar ao fim dos tokens, complete a mensagem dentro do limite estabelecido`;
+- Português (Brasil). Sem saudações.
+- PROIBIDO recomendação de compra ou venda.
+- Respeite o limite de tokens. Complete a mensagem antes do limite.`;
 
     const { answer } = await callMistralWithRetry(mistralApiKey, [
       { role: "system", content: systemPrompt },
