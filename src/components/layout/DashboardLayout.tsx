@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-40">
-        <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <div className="container max-w-[1200px] mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <Link to="/" className="font-display text-lg font-semibold tracking-tight">
               Cronos

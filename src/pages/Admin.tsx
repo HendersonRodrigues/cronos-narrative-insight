@@ -122,7 +122,7 @@ export default function Admin() {
   }, []);
 
   return (
-    <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="container max-w-[1200px] mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between gap-4">
         <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link to="/oportunidades">
