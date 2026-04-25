@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
-  const { user, userRole, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
 
   if (loading) {
     return (
@@ -26,7 +26,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
   }
 
   // Se a rota for apenas para admin e o usuário não for admin
-  if (adminOnly && userRole !== "admin") {
+  if (adminOnly && !isAdmin) {
     return <Navigate to="/oportunidades" replace />;
   }
 

@@ -53,12 +53,8 @@ const Index = () => {
     
     setLastQuestion(message);
 
-    // Chamamos a IA passando o ID do usuário de forma segura
-    brain.mutate({ 
-      message, 
-      profile, 
-      userId: user?.id 
-    }, {
+    // Chamamos a IA — userId é injetado pela própria sessão na Edge Function.
+    brain.mutate({ message, profile }, {
       onSuccess: () => {
         // Delay para o banco processar a escrita da Edge Function
         setTimeout(fetchHistory, 2500);

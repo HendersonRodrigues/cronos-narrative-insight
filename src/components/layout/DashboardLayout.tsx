@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -16,7 +16,7 @@ function navClassName({ isActive }: { isActive: boolean }) {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [fullName, setFullName] = useState<string>("");
 
   useEffect(() => {
@@ -58,6 +58,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <NavLink to="/perfil" className={navClassName}>
                 Meu Perfil
               </NavLink>
+              {isAdmin && (
+                <NavLink to="/admin" className={navClassName}>
+                  <span className="inline-flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5" />
+                    Admin
+                  </span>
+                </NavLink>
+              )}
             </nav>
           </div>
 
