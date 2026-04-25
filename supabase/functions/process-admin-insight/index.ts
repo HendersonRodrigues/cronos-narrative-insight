@@ -45,15 +45,12 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-const SYSTEM_PROMPT = `Você é um extrator de conteúdo financeiro para a plataforma Cronos.
+const SYSTEM_PROMPT_BASE = `Você é um extrator de conteúdo financeiro para a plataforma Cronos.
 Receberá um TEXTO BRUTO (relatório, análise, transcrição) e deve mapear o conteúdo
 nos campos da ferramenta 'extract_admin_insight'.
 
-REGRAS:
+REGRAS GERAIS:
 - Português (Brasil). Não invente fatos: use apenas o que está no texto.
-- 'summary': Resumo didático de no máximo 4 linhas (Regra da Avó). Termine com
-  "Ponte Tática: [estudo]" se houver gancho educacional claro; caso contrário,
-  finalize com uma frase curta de orientação. Sem recomendação de compra/venda.
 - 'details_content': Tudo que estiver após o marcador [DETALHES] no texto, se
   existir. Se não houver marcador, sintetize aqui o conteúdo de apoio (dados,
   números, contexto) que NÃO entrou no summary.
@@ -67,6 +64,21 @@ REGRAS:
 
 PROIBIDO:
 - Saudações, recomendações diretas de compra/venda, especulação fora do texto.`;
+
+const SUMMARY_RULES = {
+  briefing: `- 'summary': BRIEFING DIÁRIO. Tom leve, direto, focado em acontecimentos de
+  CURTO PRAZO e ideias para o dia (Day Trade). Máximo 4 linhas. Destaque o
+  que move o mercado HOJE (notícia macro, dado econômico, gatilho técnico).
+  Sem jargão pesado no resumo. Termine com uma frase tática rápida do tipo
+  "Olho do dia: [setup/cenário]" — sem recomendação de compra ou venda.`,
+  opportunity: `- 'summary': TESE DE OPORTUNIDADE. Resumo didático de até 4 linhas (Regra
+  da Avó), focado em médio/longo prazo. Termine com "Ponte Tática: [estudo]"
+  para indicar próximo passo de aprofundamento. Sem recomendação direta.`,
+};
+
+function buildSystemPrompt(target: "briefing" | "opportunity"): string {
+  return `${SYSTEM_PROMPT_BASE}\n\nREGRA DE RESUMO:\n${SUMMARY_RULES[target]}`;
+}
 
 const TOOL_SCHEMA = {
   type: "function",
