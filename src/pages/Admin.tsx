@@ -51,7 +51,20 @@ import {
   HelpCircle,
   Briefcase,
   Plus,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import EmptyState from "@/components/EmptyState";
 
 interface LeadRow {
   id: string;
@@ -122,7 +135,7 @@ export default function Admin() {
   }, []);
 
   return (
-    <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="container max-w-[1200px] mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between gap-4">
         <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link to="/oportunidades">
@@ -184,8 +197,9 @@ export default function Admin() {
                 <LoadingState label="Carregando leads..." />
               ) : leads.length === 0 ? (
                 <EmptyState
-                  icon={<MessageSquare className="h-8 w-8" />}
-                  label="Nenhum lead capturado ainda."
+                  icon={<MessageSquare className="h-5 w-5" />}
+                  title="Nenhum lead capturado ainda"
+                  description="Os primeiros interesses cadastrados aparecerão nesta lista."
                 />
               ) : (
                 <Table>
@@ -238,8 +252,9 @@ export default function Admin() {
                 <LoadingState label="Carregando consultas..." />
               ) : insights.length === 0 ? (
                 <EmptyState
-                  icon={<Sparkles className="h-8 w-8" />}
-                  label="Nenhuma consulta registrada ainda."
+                  icon={<Sparkles className="h-5 w-5" />}
+                  title="Nenhuma consulta registrada"
+                  description="Quando os usuários consultarem o Cronos Brain, as perguntas aparecerão aqui."
                 />
               ) : (
                 <Table>
@@ -322,24 +337,16 @@ function LoadingState({ label }: { label: string }) {
   );
 }
 
-function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
-      {icon}
-      <p className="text-sm">{label}</p>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // QuestionsManager — CRUD de app_questions
 // ---------------------------------------------------------------------------
 function QuestionsManager() {
-  const { data, loading, error, add, toggle } = useAdminQuestions();
+  const { data, loading, error, add, toggle, remove } = useAdminQuestions();
   const { toast } = useToast();
   const [text, setText] = useState("");
   const [category, setCategory] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -366,12 +373,29 @@ function QuestionsManager() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await remove(id);
+      toast({ title: "Pergunta removida." });
+    } catch (e) {
+      toast({
+        title: "Erro ao remover",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <Card className="border-border/60">
       <CardHeader>
         <CardTitle>Perguntas do app</CardTitle>
         <CardDescription>
-          Gerencie as perguntas dinâmicas exibidas para os usuários.
+          Gerencie as perguntas dinâmicas exibidas para os usuários. Desative
+          temporariamente com o switch ou remova permanentemente.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -406,13 +430,28 @@ function QuestionsManager() {
         </form>
 
         {loading ? (
-          <LoadingState label="Carregando perguntas..." />
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 rounded-md border border-border/40 bg-card/40 p-3"
+              >
+                <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-5 w-10 animate-pulse rounded bg-muted" />
+                <div className="h-8 w-8 animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
         ) : error ? (
-          <EmptyState icon={<HelpCircle className="h-8 w-8" />} label={error} />
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<HelpCircle className="h-8 w-8" />}
-            label="Nenhuma pergunta cadastrada."
+            icon={<HelpCircle className="h-5 w-5" />}
+            title="Nenhuma pergunta cadastrada"
+            description="Adicione perguntas inteligentes acima para que apareçam no app dos usuários."
           />
         ) : (
           <Table>
@@ -420,7 +459,8 @@ function QuestionsManager() {
               <TableRow>
                 <TableHead>Pergunta</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead className="w-[120px]">Ativa</TableHead>
+                <TableHead className="w-[100px]">Ativa</TableHead>
+                <TableHead className="w-[80px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -437,6 +477,46 @@ function QuestionsManager() {
                       checked={row.is_active}
                       onCheckedChange={(v) => toggle(row.id, v)}
                     />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          disabled={deletingId === row.id}
+                          aria-label="Excluir pergunta"
+                        >
+                          {deletingId === row.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir pergunta?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. A pergunta
+                            <span className="mx-1 font-medium text-foreground">
+                              "{row.text}"
+                            </span>
+                            será removida permanentemente do banco.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(row.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
@@ -564,11 +644,14 @@ function OpportunitiesManager() {
         {loading ? (
           <LoadingState label="Carregando oportunidades..." />
         ) : error ? (
-          <EmptyState icon={<Briefcase className="h-8 w-8" />} label={error} />
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
         ) : data.length === 0 ? (
           <EmptyState
-            icon={<Briefcase className="h-8 w-8" />}
-            label="Nenhuma oportunidade cadastrada."
+            icon={<Briefcase className="h-5 w-5" />}
+            title="Nenhuma oportunidade cadastrada"
+            description="Adicione a primeira oportunidade no formulário acima para que apareça em /oportunidades."
           />
         ) : (
           <Table>

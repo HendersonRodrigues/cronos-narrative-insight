@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Send, Sparkles, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import EmptyState from "@/components/EmptyState";
 import type { ProfileType } from "@/types/cronos";
+import { listQuestions } from "@/services/adminService";
 
-const SUGGESTIONS = [
+const FALLBACK_SUGGESTIONS = [
   "Qual o impacto da Selic no IBOV?",
   "O Dólar está esticado tecnicamente?",
   "Como o IPCA afeta a renda fixa hoje?",
@@ -19,6 +22,35 @@ interface Props {
 
 export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }: Props) {
   const [value, setValue] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingQs, setLoadingQs] = useState(true);
+  const [errored, setErrored] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await listQuestions({ onlyActive: true });
+        if (!mounted) return;
+        // Use DB content when present, otherwise fall back to local suggestions
+        // so the section is always meaningful even before content is curated.
+        if (rows.length > 0) {
+          setSuggestions(rows.map((r) => r.text));
+        } else {
+          setSuggestions(FALLBACK_SUGGESTIONS);
+        }
+      } catch {
+        if (!mounted) return;
+        setErrored(true);
+        setSuggestions(FALLBACK_SUGGESTIONS);
+      } finally {
+        if (mounted) setLoadingQs(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -67,22 +99,39 @@ export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }:
         </Button>
       </form>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => handleSuggestion(s)}
-            disabled={isLoading}
-            className="group rounded-lg border border-border/60 bg-card/40 px-4 py-3 text-left text-sm text-foreground/80 transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="font-mono text-[10px] uppercase tracking-wider text-primary/70 group-hover:text-primary">
-              ↗ sugestão
-            </span>
-            <p className="mt-1 leading-snug">{s}</p>
-          </button>
-        ))}
-      </div>
+      {loadingQs ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[68px] w-full rounded-lg" />
+          ))}
+        </div>
+      ) : suggestions.length === 0 ? (
+        <EmptyState
+          title="Sem perguntas sugeridas"
+          description={
+            errored
+              ? "Não conseguimos carregar as sugestões agora. Você ainda pode digitar sua pergunta acima."
+              : "Nenhuma pergunta inteligente disponível no momento."
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => handleSuggestion(s)}
+              disabled={isLoading}
+              className="group rounded-lg border border-border/60 bg-card/40 px-4 py-3 text-left text-sm text-foreground/80 transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-wider text-primary/70 group-hover:text-primary">
+                ↗ sugestão
+              </span>
+              <p className="mt-1 leading-snug">{s}</p>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

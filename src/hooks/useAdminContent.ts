@@ -9,6 +9,7 @@ import {
   listQuestions,
   createQuestion,
   toggleQuestionActive,
+  deleteQuestion,
   listOpportunities,
   createOpportunity,
   toggleOpportunityActive,
@@ -61,7 +62,15 @@ export function useAdminQuestions() {
     [refresh],
   );
 
-  return { data, loading, error, refresh, add, toggle };
+  const remove = useCallback(
+    async (id: string) => {
+      await deleteQuestion(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { data, loading, error, refresh, add, toggle, remove };
 }
 
 // ---------------------------------------------------------------------------

@@ -63,6 +63,12 @@ export async function toggleQuestionActive(
   if (error) throw error;
 }
 
+export async function deleteQuestion(id: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase not configured");
+  const { error } = await supabase.from("app_questions").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---------------------------------------------------------------------------
 // investment_opportunities
 // ---------------------------------------------------------------------------

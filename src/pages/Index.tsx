@@ -69,7 +69,7 @@ const Index = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <CronosHeader />
-        <main className="container max-w-5xl mx-auto flex-1 px-4 py-8 space-y-10">
+        <main className="container max-w-[1200px] mx-auto flex-1 px-4 py-8 space-y-10">
           <DailyBriefing />
           <MarketDashboard />
           <ProfileLens profile={profile} onChange={setProfile} />
@@ -85,7 +85,7 @@ const Index = () => {
   return (
     <DashboardLayout>
       <div className="min-h-[calc(100vh-73px)] flex flex-col bg-background">
-        <main className="container max-w-5xl mx-auto flex-1 px-4 py-8 space-y-8">
+        <main className="container max-w-[1200px] mx-auto flex-1 px-4 py-8 space-y-8">
           <section className="space-y-1">
             <h1 className="font-display text-3xl font-semibold tracking-tight italic">
               Boas-vindas, {user.email?.split('@')[0]}
