@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { History, MessageSquare, ArrowRight, Loader2 } from "lucide-react";
 
 const Index = () => {
-  const { user, loading } = useAuth(); // Adicionei 'loading' do seu AuthContext
+  const { user, loading, profileData } = useAuth();
   const { profile, setProfile, sessionId } = useProfile();
   const brain = useCronosBrain();
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
@@ -83,11 +83,11 @@ const Index = () => {
   }
 
 {/* Lógica de Saudação:
-   1. Tenta o nome no perfil
-   2. Se não houver, tenta o email completo
-   3. Se não houver (raro), usa "Investidor"
+   1. Prioriza profileData.full_name (tabela profiles)
+   2. Fallback: e-mail completo do usuário
+   3. Último recurso: "Investidor"
 */}
-const welcomeName = profile?.full_name || user?.email || "Investidor";
+const welcomeName = profileData?.full_name || user?.email || "Investidor";
 
 return (
   <DashboardLayout>
