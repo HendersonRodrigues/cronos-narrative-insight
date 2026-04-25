@@ -1,20 +1,18 @@
 /**
- * SmartPasteManager — Etapa 3.1 do Plano Cronos.
+ * SmartPasteManager — Etapa 3.1/3.2 do Plano Cronos.
  *
- * Permite ao admin colar um texto bruto e obter, via edge function
- * `process-admin-insight`, uma extração estruturada (summary,
- * details_content, deep_analysis, assets_linked).
+ * Permite ao admin:
+ *   1. Selecionar o DESTINO do insight (Briefing diário ou Oportunidade).
+ *   2. Escolher o MODO: criar novo OU atualizar (substituir/arquivar) registro.
+ *   3. Colar texto bruto e processar via edge function `process-admin-insight`.
+ *   4. Visualizar o resultado em um Sandbox que simula o card final.
+ *   5. Publicar (status='published') ou salvar como rascunho (status='draft').
  *
- * O componente NÃO persiste no banco: exibe um Preview Sandbox que
- * simula o card final do usuário, com a seção [DETALHES] dentro de um
- * Accordion (escondida por padrão).
- *
- * Segurança:
- *   - A edge function exige JWT + role 'admin' (defesa em profundidade).
- *   - A aba só aparece para admins no painel (ProtectedRoute adminOnly).
+ * Persistência feita pela edge function `save-admin-insight`, que valida
+ * role 'admin' e arquiva o registro anterior quando o modo é 'update'.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/lib/supabase";
@@ -25,6 +23,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -45,13 +51,31 @@ import {
   Sparkles,
   Terminal,
   Wand2,
+  Save,
+  Send,
+  Calendar,
+  Activity,
+  TrendingUp,
 } from "lucide-react";
+
+type Target = "briefing" | "opportunity";
+type Mode = "create" | "update";
 
 interface ExtractedInsight {
   summary: string;
   details_content: string;
   deep_analysis: string;
   assets_linked: string[];
+  title?: string;
+  market_sentiment?: string;
+  trade_setup?: string;
+}
+
+interface ExistingRecord {
+  id: string;
+  label: string;
+  status?: string;
+  date?: string | null;
 }
 
 const MIN_CHARS = 80;
@@ -59,13 +83,90 @@ const MIN_CHARS = 80;
 export default function SmartPasteManager() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
+
+  const [target, setTarget] = useState<Target>("briefing");
+  const [mode, setMode] = useState<Mode>("create");
+  const [replaceId, setReplaceId] = useState<string>("");
+  const [existing, setExisting] = useState<ExistingRecord[]>([]);
+  const [loadingExisting, setLoadingExisting] = useState(false);
+
   const [rawText, setRawText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<ExtractedInsight | null>(null);
 
   const charCount = rawText.trim().length;
-  const canSubmit = isAdmin && !loading && charCount >= MIN_CHARS;
+  const canProcess = isAdmin && !processing && charCount >= MIN_CHARS;
+  const canSave =
+    isAdmin && !saving && !!result && (mode === "create" || !!replaceId);
 
+  // ---------------- carrega registros para "Atualizar" ----------------
+  useEffect(() => {
+    if (mode !== "update" || !supabase) {
+      setExisting([]);
+      setReplaceId("");
+      return;
+    }
+    let cancelled = false;
+    setLoadingExisting(true);
+
+    async function load() {
+      try {
+        if (target === "briefing") {
+          const { data, error } = await supabase!
+            .from("daily_briefing")
+            .select("id, title, date, status")
+            .neq("status", "archived")
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .limit(20);
+          if (error) throw error;
+          if (cancelled) return;
+          setExisting(
+            (data ?? []).map((r) => ({
+              id: r.id as string,
+              label: `${r.title ?? "Briefing"} — ${r.date ?? "—"}`,
+              status: r.status as string | undefined,
+              date: r.date as string | null,
+            })),
+          );
+        } else {
+          const { data, error } = await supabase!
+            .from("investment_opportunities")
+            .select("id, name, status, is_archived, created_at")
+            .eq("is_archived", false)
+            .order("created_at", { ascending: false })
+            .limit(30);
+          if (error) throw error;
+          if (cancelled) return;
+          setExisting(
+            (data ?? []).map((r) => ({
+              id: r.id as string,
+              label: r.name as string,
+              status: r.status as string | undefined,
+            })),
+          );
+        }
+      } catch (e) {
+        if (!cancelled) {
+          toast({
+            title: "Falha ao listar registros",
+            description: (e as Error).message,
+            variant: "destructive",
+          });
+          setExisting([]);
+        }
+      } finally {
+        if (!cancelled) setLoadingExisting(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, target, toast]);
+
+  // ---------------- ações ----------------
   const handleProcess = async () => {
     if (!supabase) {
       toast({
@@ -83,12 +184,12 @@ export default function SmartPasteManager() {
       });
       return;
     }
-    setLoading(true);
+    setProcessing(true);
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke(
         "process-admin-insight",
-        { body: { text: rawText.trim() } },
+        { body: { text: rawText.trim(), target } },
       );
       if (error) throw error;
       const extracted = (data as { extracted?: ExtractedInsight })?.extracted;
@@ -96,16 +197,63 @@ export default function SmartPasteManager() {
         throw new Error("Resposta da IA sem conteúdo estruturado.");
       }
       setResult(extracted);
-      toast({ title: "Insight processado com sucesso." });
+      toast({ title: "Insight processado." });
     } catch (e) {
-      const message = (e as Error).message ?? "Erro desconhecido.";
       toast({
         title: "Falha ao processar",
-        description: message,
+        description: (e as Error).message ?? "Erro desconhecido.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleSave = async (publish: boolean) => {
+    if (!result || !supabase) return;
+    if (mode === "update" && !replaceId) {
+      toast({
+        title: "Selecione um registro",
+        description: "Escolha qual registro será arquivado e substituído.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "save-admin-insight",
+        {
+          body: {
+            target,
+            mode,
+            replace_id: mode === "update" ? replaceId : undefined,
+            publish,
+            insight: result,
+          },
+        },
+      );
+      if (error) throw error;
+      const ok = (data as { ok?: boolean })?.ok;
+      if (!ok) throw new Error("Resposta inesperada do servidor.");
+      toast({
+        title: publish ? "Publicado!" : "Rascunho salvo.",
+        description: publish
+          ? "O conteúdo já está visível para os usuários."
+          : "Você pode revisá-lo antes de publicar.",
+      });
+      // Reset
+      setResult(null);
+      setRawText("");
+      setReplaceId("");
+    } catch (e) {
+      toast({
+        title: "Falha ao salvar",
+        description: (e as Error).message ?? "Erro desconhecido.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -125,25 +273,114 @@ export default function SmartPasteManager() {
                 Smart-Paste
               </CardTitle>
               <CardDescription>
-                Cole um relatório, transcrição ou análise bruta. A IA extrai
-                resumo, detalhes técnicos e ativos vinculados no formato
-                Cronos. Nada é salvo automaticamente — revise no Preview
-                abaixo.
+                Cole um texto bruto, escolha o destino e processe com IA. Nada
+                é publicado sem sua revisão no Preview Sandbox abaixo.
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-              Etapa 3.1
+              Etapa 3.2
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
+          {/* Destino + Modo */}
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Destino</Label>
+              <Select
+                value={target}
+                onValueChange={(v) => {
+                  setTarget(v as Target);
+                  setReplaceId("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="briefing">
+                    Briefing diário (curto prazo / day trade)
+                  </SelectItem>
+                  <SelectItem value="opportunity">
+                    Oportunidade (médio / longo prazo)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Modo</Label>
+              <Select value={mode} onValueChange={(v) => setMode(v as Mode)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="create">Criar novo</SelectItem>
+                  <SelectItem value="update">
+                    Atualizar existente (arquiva o anterior)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Lista de registros para substituir */}
+          {mode === "update" && (
+            <div className="space-y-1.5">
+              <Label>Registro a substituir</Label>
+              <Select
+                value={replaceId}
+                onValueChange={setReplaceId}
+                disabled={loadingExisting || existing.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      loadingExisting
+                        ? "Carregando..."
+                        : existing.length === 0
+                          ? "Nenhum registro disponível"
+                          : "Selecione o registro"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {existing.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{r.label}</span>
+                        {r.status && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] uppercase tracking-wider"
+                          >
+                            {r.status}
+                          </Badge>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                O registro selecionado será marcado como{" "}
+                <span className="font-mono text-destructive/80">archived</span>{" "}
+                ao publicar o novo.
+              </p>
+            </div>
+          )}
+
+          {/* Texto bruto */}
           <div className="space-y-1.5">
             <Label htmlFor="smart-paste-text">Texto bruto</Label>
             <Textarea
               id="smart-paste-text"
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
-              placeholder="Cole aqui o relatório, análise ou transcrição que deseja transformar em insight estruturado..."
+              placeholder={
+                target === "briefing"
+                  ? "Cole notícias do dia, leitura macro, gatilhos para day trade..."
+                  : "Cole a tese de investimento, fundamentos, números e contexto..."
+              }
               rows={10}
               className="resize-y font-mono text-[13px] leading-relaxed"
             />
@@ -167,21 +404,21 @@ export default function SmartPasteManager() {
             <Button
               type="button"
               onClick={handleProcess}
-              disabled={!canSubmit}
+              disabled={!canProcess}
               className="gap-1.5"
             >
-              {loading ? (
+              {processing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Sparkles className="h-4 w-4" />
               )}
-              {loading ? "Processando..." : "Processar com IA"}
+              {processing ? "Processando..." : "Processar com IA"}
             </Button>
             <Button
               type="button"
               variant="ghost"
               onClick={handleClear}
-              disabled={loading || (!rawText && !result)}
+              disabled={processing || (!rawText && !result)}
               className="gap-1.5"
             >
               <ClipboardPaste className="h-4 w-4" />
@@ -191,7 +428,52 @@ export default function SmartPasteManager() {
         </CardContent>
       </Card>
 
-      {result && <PreviewSandbox extracted={result} />}
+      {result && (
+        <>
+          <PreviewSandbox extracted={result} target={target} />
+
+          <Card className="border-border/60">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div className="text-xs text-muted-foreground">
+                {mode === "update" && replaceId
+                  ? "Ao publicar, o registro selecionado será arquivado."
+                  : mode === "update"
+                    ? "Selecione um registro para atualizar antes de publicar."
+                    : "Será criado um novo registro."}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSave(false)}
+                  disabled={!canSave}
+                  className="gap-1.5"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Salvar como rascunho
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleSave(true)}
+                  disabled={!canSave}
+                  className="gap-1.5 bg-primary hover:bg-primary/90"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  PUBLICAR AGORA
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
@@ -200,7 +482,23 @@ export default function SmartPasteManager() {
 // Preview Sandbox — simula o card visto pelo usuário final
 // ---------------------------------------------------------------------------
 
-function PreviewSandbox({ extracted }: { extracted: ExtractedInsight }) {
+function PreviewSandbox({
+  extracted,
+  target,
+}: {
+  extracted: ExtractedInsight;
+  target: Target;
+}) {
+  const today = useMemo(
+    () =>
+      new Date().toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+      }),
+    [],
+  );
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -209,7 +507,7 @@ function PreviewSandbox({ extracted }: { extracted: ExtractedInsight }) {
           Preview Sandbox
         </span>
         <span className="text-xs text-muted-foreground">
-          Pré-visualização do card final
+          Simulação do card final ({target === "briefing" ? "Home" : "Oportunidades"})
         </span>
       </div>
 
@@ -217,12 +515,57 @@ function PreviewSandbox({ extracted }: { extracted: ExtractedInsight }) {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
         <div className="p-6 md:p-8 space-y-5">
-          <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-primary" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-              Cronos Brain
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1">
+              <Brain className="h-3 w-3 text-primary" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+                {target === "briefing" ? "Briefing do Dia" : "Tese Cronos"}
+              </span>
+            </div>
+            {target === "briefing" && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span className="font-mono text-[10px] uppercase tracking-wider">
+                  {today}
+                </span>
+              </div>
+            )}
           </div>
+
+          {extracted.title && (
+            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+              {extracted.title}
+            </h2>
+          )}
+
+          {/* Sentimento + Setup (apenas briefing) */}
+          {target === "briefing" &&
+            (extracted.market_sentiment || extracted.trade_setup) && (
+              <div className="grid gap-2 md:grid-cols-2">
+                {extracted.market_sentiment && (
+                  <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+                    <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <Activity className="h-3 w-3" />
+                      Sentimento
+                    </div>
+                    <p className="text-sm text-foreground/90">
+                      {extracted.market_sentiment}
+                    </p>
+                  </div>
+                )}
+                {extracted.trade_setup && (
+                  <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+                    <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <TrendingUp className="h-3 w-3" />
+                      Setup do dia
+                    </div>
+                    <p className="text-sm text-foreground/90">
+                      {extracted.trade_setup}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
           {/* INSIGHT RÁPIDO */}
           <section className="space-y-2">
@@ -305,3 +648,6 @@ function PreviewSandbox({ extracted }: { extracted: ExtractedInsight }) {
     </div>
   );
 }
+
+// Removed unused Input import keeper — Input not used here.
+void Input;
