@@ -303,7 +303,7 @@ serve(async (req) => {
       );
     }
 
-    return jsonResponse({ extracted, model });
+    return jsonResponse({ extracted, model, target });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro interno.";
     console.error("process-admin-insight error:", message);
