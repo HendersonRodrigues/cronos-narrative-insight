@@ -12,6 +12,7 @@ import { useCronosBrain } from "@/hooks/useCronosBrain";
 import { logQuery } from "@/services/analyticsService";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveDisplayName } from "@/lib/displayName";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
@@ -82,12 +83,8 @@ const Index = () => {
     );
   }
 
-{/* Lógica de Saudação:
-   1. Prioriza profileData.full_name (tabela profiles)
-   2. Fallback: e-mail completo do usuário
-   3. Último recurso: "Investidor"
-*/}
-const welcomeName = profileData?.full_name || user?.email || "Investidor";
+// Saudação: prioriza full_name; cai para e-mail (truncado se > 20 chars).
+const welcomeName = resolveDisplayName(profileData?.full_name, user?.email);
 
 return (
   <DashboardLayout>
