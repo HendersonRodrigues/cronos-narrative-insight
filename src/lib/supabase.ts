@@ -1,19 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-// 1. Captura as variáveis de ambiente com segurança
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+/**
+ * Cliente Supabase do projeto.
+ *
+ * Segurança:
+ * - Credenciais lidas EXCLUSIVAMENTE via `import.meta.env` (Vite).
+ * - Nada é hardcoded no bundle. Sem env, o cliente fica em modo "noop seguro"
+ *   (URL vazia) e o app loga um erro em vez de crashar.
+ */
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as
+  | string
+  | undefined;
 
-// 2. Validação simples para evitar que o app quebre sem aviso
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("ERRO: Variáveis de ambiente do Supabase não encontradas!");
+export const IS_SUPABASE_CONFIGURED = Boolean(supabaseUrl && supabaseAnonKey);
+
+if (!IS_SUPABASE_CONFIGURED) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[Supabase] VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY ausentes. " +
+      "Defina-as no .env (ver .env.example).",
+  );
 }
 
-// 3. Inicializa o cliente com a persistência que você pediu
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+export const supabase = createClient(supabaseUrl ?? "", supabaseAnonKey ?? "", {
   auth: {
     persistSession: true,
-    storageKey: 'cronos-auth-token',
+    storageKey: "cronos-auth-token",
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
