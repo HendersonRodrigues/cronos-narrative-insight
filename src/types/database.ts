@@ -47,10 +47,13 @@ export interface HasRoleArgs {
 // app_questions — perguntas dinâmicas exibidas no app (ex.: consultoria/onboarding)
 // ---------------------------------------------------------------------------
 
+export type ContentStatus = "draft" | "published" | "archived";
+
 export interface AppQuestionRow {
   id: string;
   text: string;
   is_active: boolean;
+  status: ContentStatus | string;
   category: string | null;
   order_index: number | null;
   created_at: string;
@@ -79,11 +82,43 @@ export interface InvestmentOpportunityRow {
   return_rate: number | null;     // ex.: 0.18 (18% a.a.)
   risk_level: RiskLevel | string; // string p/ tolerar valores não enumerados
   is_active: boolean;
+  is_archived: boolean;
+  status: ContentStatus | string;
   category: string | null;
   min_investment: number | null;
+  summary: string | null;
+  details_content: string | null;
+  deep_analysis: string | null;
+  assets_linked: string[] | null;
+  author_id: string | null;
   created_at: string;
   updated_at: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// daily_briefing — análises macro/diárias publicadas pelo admin
+// ---------------------------------------------------------------------------
+
+export interface DailyBriefingRow {
+  id: string;
+  created_at: string;
+  date: string | null;
+  title: string | null;
+  content: string | null;
+  profile_type: string | null;
+  status: ContentStatus | string;
+  market_sentiment: string | null;
+  trade_setup: string | null;
+  details_content: string | null;
+  deep_analysis: string | null;
+  assets_linked: string[] | null;
+  author_id: string | null;
+}
+
+export type DailyBriefingInsert = Omit<DailyBriefingRow, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
 
 export type InvestmentOpportunityInsert = Omit<
   InvestmentOpportunityRow,
