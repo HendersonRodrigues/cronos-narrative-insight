@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   CartesianGrid,
   Line,
@@ -97,50 +98,63 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
         </div>
       </div>
 
+      {/* Altura fixa evita layout shift entre transições */}
       <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
-              tickLine={false}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              minTickGap={32}
-            />
-            <YAxis
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
-              tickLine={false}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              width={60}
-              tickFormatter={(v) => (active ? formatValue(active, Number(v)) : String(v))}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-              labelStyle={{ color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: 10 }}
-              formatter={(val: number) => [active ? formatValue(active, val) : val, meta?.short ?? ""]}
-            />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="url(#lineGradient)"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: "hsl(var(--primary))" }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="h-full w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  minTickGap={32}
+                />
+                <YAxis
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  width={60}
+                  tickFormatter={(v) => (active ? formatValue(active, Number(v)) : String(v))}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: 10 }}
+                  formatter={(val: number) => [active ? formatValue(active, val) : val, meta?.short ?? ""]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="url(#lineGradient)"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "hsl(var(--primary))" }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </Card>
   );
