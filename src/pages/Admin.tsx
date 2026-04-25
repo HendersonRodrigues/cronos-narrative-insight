@@ -52,6 +52,7 @@ import {
   Briefcase,
   Plus,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -65,6 +66,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import EmptyState from "@/components/EmptyState";
+import SmartPasteManager from "@/components/admin/SmartPasteManager";
 
 interface LeadRow {
   id: string;
@@ -177,11 +179,15 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="leads" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-[720px] mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 max-w-[900px] mb-6">
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="insights">Consultas</TabsTrigger>
           <TabsTrigger value="questions">Perguntas</TabsTrigger>
           <TabsTrigger value="opportunities">Oportunidades</TabsTrigger>
+          <TabsTrigger value="smart-paste" className="gap-1.5">
+            <Wand2 className="h-3.5 w-3.5" />
+            Smart-Paste
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads">
@@ -296,6 +302,10 @@ export default function Admin() {
 
         <TabsContent value="opportunities">
           <OpportunitiesManager />
+        </TabsContent>
+
+        <TabsContent value="smart-paste">
+          <SmartPasteManager />
         </TabsContent>
       </Tabs>
     </div>
