@@ -164,9 +164,11 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="leads" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-[420px] mb-6">
-          <TabsTrigger value="leads">Leads recentes</TabsTrigger>
-          <TabsTrigger value="insights">Consultas recentes</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 max-w-[720px] mb-6">
+          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="insights">Consultas</TabsTrigger>
+          <TabsTrigger value="questions">Perguntas</TabsTrigger>
+          <TabsTrigger value="opportunities">Oportunidades</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads">
