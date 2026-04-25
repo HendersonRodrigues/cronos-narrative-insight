@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import type { ProfileDataRow } from "@/types/database";
 
 export type AppRole = "admin" | "moderator" | "user";
 
@@ -9,6 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: AppRole | null;
   isAdmin: boolean;
+  profileData: ProfileDataRow | null;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
