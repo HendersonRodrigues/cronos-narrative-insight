@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +11,62 @@ interface MarketCardProps {
   isLoading?: boolean;
 }
 
+/**
+ * Sparkline SVG inline.
+ *
+ * Por que SVG puro (sem Recharts)?
+ *  - Recharts adiciona ResponsiveContainer + medições que causam layout shift.
+ *  - Aqui usamos viewBox fixo + preserveAspectRatio="none", o slot é
+ *    reservado mesmo antes dos pontos chegarem (evita CLS).
+ */
+function Sparkline({
+  points,
+  trendUp,
+}: {
+  points: number[];
+  trendUp: boolean;
+}) {
+  const path = useMemo(() => {
+    if (points.length < 2) return null;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const span = max - min || 1;
+    const w = 100;
+    const h = 28;
+    const stepX = w / (points.length - 1);
+    const d = points
+      .map((v, i) => {
+        const x = (i * stepX).toFixed(2);
+        const y = (h - ((v - min) / span) * h).toFixed(2);
+        return `${i === 0 ? "M" : "L"}${x},${y}`;
+      })
+      .join(" ");
+    return d;
+  }, [points]);
+
+  return (
+    <svg
+      viewBox="0 0 100 28"
+      preserveAspectRatio="none"
+      aria-hidden
+      className="block h-7 w-full"
+    >
+      {path && (
+        <path
+          d={path}
+          fill="none"
+          stroke={trendUp ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          opacity={0.85}
+        />
+      )}
+    </svg>
+  );
+}
+
 export default function MarketCard({ assetId, snapshot, isLoading }: MarketCardProps) {
   const meta = getAssetMeta(assetId);
 
@@ -18,12 +75,14 @@ export default function MarketCard({ assetId, snapshot, isLoading }: MarketCardP
       <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-4 space-y-3">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-7 w-32" />
+        {/* Reserva o mesmo espaço da sparkline (h-7) para evitar layout shift */}
+        <Skeleton className="h-7 w-full" />
         <Skeleton className="h-3 w-24" />
       </Card>
     );
   }
 
-  const { latest, previous } = snapshot;
+  const { latest, previous, history } = snapshot;
   const delta = previous ? pctChange(latest.value, previous.value) : null;
   const trend = delta == null ? "flat" : delta > 0 ? "up" : delta < 0 ? "down" : "flat";
 
@@ -35,6 +94,7 @@ export default function MarketCard({ assetId, snapshot, isLoading }: MarketCardP
         : "text-muted-foreground";
 
   const TrendIcon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : Minus;
+  const sparkPoints = (history ?? []).slice(-30).map((p) => Number(p.value));
 
   return (
     <Card className="group relative overflow-hidden border-border/60 bg-card/60 backdrop-blur-sm p-4 transition-all hover:border-primary/40 hover:bg-card/80">
@@ -67,6 +127,11 @@ export default function MarketCard({ assetId, snapshot, isLoading }: MarketCardP
         <p className="font-display text-2xl font-semibold tracking-tight text-foreground tabular-nums">
           {formatValue(assetId, latest.value)}
         </p>
+      </div>
+
+      {/* Sparkline — slot fixo (h-7) renderizado mesmo sem dados suficientes */}
+      <div className="mt-2 h-7 w-full">
+        <Sparkline points={sparkPoints} trendUp={trend === "up"} />
       </div>
 
       <div className="mt-2 flex items-center justify-between text-[10px]">

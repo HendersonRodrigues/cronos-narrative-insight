@@ -1,12 +1,14 @@
 import { useMarketSnapshot } from "@/hooks/useMarketSnapshot";
 import MarketCard from "./MarketCard";
 import MarketChart from "./MarketChart";
+import EmptyState from "./EmptyState";
 import { AlertCircle, LineChart } from "lucide-react";
 
 const FEATURED_ASSETS = ["ibov", "dolar", "sp500", "gold", "selic", "ipca"];
 
 export default function MarketDashboard() {
   const { snapshots, isLoading, error } = useMarketSnapshot(FEATURED_ASSETS);
+  const hasAnyData = Object.keys(snapshots).length > 0;
 
   return (
     <section className="space-y-5">
@@ -49,7 +51,14 @@ export default function MarketDashboard() {
         ))}
       </div>
 
-      <MarketChart snapshots={snapshots} isLoading={isLoading} defaultAsset="ibov" />
+      {!isLoading && !error && !hasAnyData ? (
+        <EmptyState
+          title="Sem dados de mercado"
+          description="Assim que o Cronos sincronizar a próxima leitura, os indicadores aparecerão aqui."
+        />
+      ) : (
+        <MarketChart snapshots={snapshots} isLoading={isLoading} defaultAsset="ibov" />
+      )}
     </section>
   );
 }

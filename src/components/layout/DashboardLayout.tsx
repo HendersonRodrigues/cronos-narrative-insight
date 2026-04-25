@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { memo } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { resolveDisplayName } from "@/lib/displayName";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,30 +15,17 @@ function navClassName({ isActive }: { isActive: boolean }) {
     : "text-muted-foreground hover:text-foreground transition-colors";
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, isAdmin, signOut } = useAuth();
-  const [fullName, setFullName] = useState<string>("");
-
-  useEffect(() => {
-    let mounted = true;
-    async function loadProfileName() {
-      if (!supabase || !user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (!mounted) return;
-      setFullName(data?.full_name ?? "");
-    }
-    loadProfileName();
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
-
-  const displayName = fullName || user?.email || "Usuário";
+/**
+ * DashboardLayout — shell autenticada.
+ *
+ * Otimizações:
+ *  - Reusa `profileData` do AuthContext (sem novo fetch à tabela profiles).
+ *  - Resolve o nome via `resolveDisplayName` (mesma regra do Index).
+ *  - Memoizado para evitar re-render quando children não mudam.
+ */
+function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { user, isAdmin, profileData, signOut } = useAuth();
+  const displayName = resolveDisplayName(profileData?.full_name, user?.email, "Usuário");
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,7 +48,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {isAdmin && (
                 <NavLink to="/admin" className={navClassName}>
                   <span className="inline-flex items-center gap-1">
-                    <Shield className="h-3.5 w-3.5" />
+                    <Shield className="h-3.5 w-3.5" aria-hidden />
                     Admin
                   </span>
                 </NavLink>
@@ -74,7 +61,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {displayName}
             </span>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={signOut}>
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden />
               Sair
             </Button>
           </div>
@@ -85,3 +72,5 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 }
+
+export default memo(DashboardLayout);
