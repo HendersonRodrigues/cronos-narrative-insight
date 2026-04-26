@@ -71,7 +71,7 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 500;
   }
 }
 
@@ -148,7 +148,7 @@
 }
 .prose-cronos h1, .prose-cronos h2, .prose-cronos h3 {
   color: hsl(var(--primary));
-  font-weight: 600;
+  font-weight: 500;
   margin-top: 1.25em;
   margin-bottom: 0.5em;
 }
@@ -156,7 +156,7 @@
 .prose-cronos h2 { font-size: 1.2rem; }
 .prose-cronos h3 { font-size: 1.05rem; }
 .prose-cronos p { margin: 0.75em 0; color: hsl(var(--foreground) / 0.9); }
-.prose-cronos strong { color: hsl(var(--primary-glow)); font-weight: 600; }
+.prose-cronos strong { color: hsl(var(--primary-glow)); font-weight: 500; }
 .prose-cronos ul, .prose-cronos ol { margin: 0.75em 0; padding-left: 1.5em; }
 .prose-cronos li { margin: 0.35em 0; }
 .prose-cronos code {
