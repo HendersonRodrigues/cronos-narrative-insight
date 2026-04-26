@@ -14,9 +14,26 @@ export default {
     },
     extend: {
       fontFamily: {
+        // Definindo Inter como padrão para Sans, Display e Body
+        sans: ["'Inter'", "system-ui", "sans-serif"],
         display: ["'Inter'", "system-ui", "sans-serif"],
         body: ["'Inter'", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],
+      },
+      fontSize: {
+        // Escala levemente reduzida para um visual mais "SaaS Enterprise"
+        'xs': ['0.75rem', { lineHeight: '1rem' }],     // 12px
+        'sm': ['0.844rem', { lineHeight: '1.25rem' }],  // ~13.5px
+        'base': ['0.938rem', { lineHeight: '1.5rem' }], // ~15px (Otimização de tela)
+        'lg': ['1.063rem', { lineHeight: '1.75rem' }],  // ~17px
+        'xl': ['1.188rem', { lineHeight: '1.75rem' }],  // ~19px
+        '2xl': ['1.438rem', { lineHeight: '2rem' }],    // ~23px
+      },
+      fontWeight: {
+        // Mapeamento mental para evitar o uso de 700+ desnecessário
+        medium: "500",
+        semibold: "600",
+        bold: "600", // Sobrescrevendo o peso bold para não "gritar"
       },
       colors: {
         border: "hsl(var(--border))",
