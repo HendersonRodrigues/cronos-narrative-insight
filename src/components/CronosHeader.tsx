@@ -1,31 +1,42 @@
-import { Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
-export default function CronosHeader() {
+const CronosHeader = ({ showLoginButton = true }: { showLoginButton?: boolean }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="container max-w-5xl mx-auto flex items-center justify-between py-4">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 ring-primary-soft">
-            <Activity className="h-4 w-4 text-primary" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary animate-pulse" />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="font-display text-lg font-semibold tracking-tight text-foreground">
-              CRONOS
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Inteligência de Mercado
-            </span>
-          </div>
+    <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 max-w-[1200px] items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-bold tracking-tighter text-primary">CRONOS</span>
         </div>
 
-        <div className="hidden items-center gap-2 md:flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-primary/80">
-            Live · Cronos Brain
-          </span>
+        <div className="flex items-center gap-4">
+          {!user && showLoginButton && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/auth")}
+              className="font-medium text-muted-foreground hover:text-primary"
+            >
+              Entrar
+            </Button>
+          )}
+          {!user && (
+            <Button 
+              size="sm" 
+              onClick={() => navigate("/auth")}
+              className="bg-primary text-primary-foreground font-semibold"
+            >
+              Criar Conta
+            </Button>
+          )}
         </div>
       </div>
     </header>
   );
-}
+};
+
+export default CronosHeader;
