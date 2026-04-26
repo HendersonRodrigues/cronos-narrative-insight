@@ -53,9 +53,9 @@ export default function ResponseDisplay({ isLoading, error, answer, question }: 
 
   // Divide a resposta no marcador [DETALHES] APENAS quando ele existir.
   // Caso contrário, renderiza a resposta integralmente como Insight Rápido.
-  const hasDetails = typeof answer === "string" && answer.includes("[DETALHE]");
+  const hasDetails = typeof answer === "string" && answer.includes("[DETALHES]");
   const [resumoRaw = "", detalhesRaw = ""] = hasDetails
-    ? (answer as string).split("[DETALHE]")
+    ? (answer as string).split("[DETALHES]")
     : [answer ?? "", ""];
   const resumo = resumoRaw.trim();
   const detalhes = detalhesRaw.trim();
