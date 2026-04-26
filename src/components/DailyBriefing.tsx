@@ -103,16 +103,19 @@ export default function DailyBriefing() {
         )}
 
         {data && (
-          <div className="space-y-4">
-            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+          <div className="space-y-3"> {/* Reduzido de space-y-4 para mais densidade */}
+            <h2 className="font-display text-xl md:text-2xl font-semibold tracking-tight text-foreground">
               {data.title}
             </h2>
-            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-headings:font-display prose-headings:tracking-tight prose-p:text-foreground/85 prose-strong:text-foreground prose-a:text-primary prose-li:text-foreground/85">
+            
+            {/* Ajuste na escala do texto do Markdown para ser mais sutil */}
+            <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-p:text-foreground/80 prose-strong:text-primary/90">
               <ReactMarkdown>{data.content}</ReactMarkdown>
             </div>
+
             {data.profile_type && data.profile_type !== "geral" && (
-              <div className="pt-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-secondary-foreground">
+              <div className="pt-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/50 border border-white/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-secondary-foreground">
                   Foco · {data.profile_type}
                 </span>
               </div>
