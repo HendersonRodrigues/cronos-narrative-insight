@@ -12,77 +12,73 @@ export default function CronosHeader({ showLoginButton = true }: CronosHeaderPro
   const navigate = useNavigate();
 
   return (
-    /* Centralização do Header no topo com largura contida */
-    <div className="w-full flex justify-center sticky top-0 z-50 bg-[#020817]/80 backdrop-blur-md border-b border-white/5">
-      <header className="container max-w-[1200px] w-full flex justify-between items-center px-4 md:px-6 py-5 text-white">
+    <div className="w-full flex justify-center sticky top-0 z-50 bg-[#020817] border-b border-white/5">
+      <header className="container max-w-[1200px] w-full flex justify-between items-center px-4 md:px-6 py-3.5 text-white">
         
-        {/* LADO ESQUERDO: IDENTIDADE VISUAL (Logo + Glow) */}
-        <div className="flex items-center gap-3">
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-cyan-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
-            <div className="relative p-2 bg-[#020817] border border-cyan-500/30 rounded-lg">
-              <Activity className="w-5 h-5 text-cyan-400" />
-              <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-            </div>
+        {/* LADO ESQUERDO: BRANDING (Compacto) */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative p-1.5 bg-[#020817] border border-cyan-500/30 rounded-md">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500"></span>
+            </span>
           </div>
           
           <div className="flex flex-col">
-            <span className="text-lg font-bold tracking-[0.15em] leading-none uppercase font-display">
+            <span className="text-base font-bold tracking-[0.12em] leading-none uppercase font-display">
               CRONOS
             </span>
-            <span className="text-[9px] text-gray-500 tracking-[0.25em] font-medium mt-1 uppercase">
+            <span className="text-[8px] text-gray-500 tracking-[0.2em] font-medium mt-1 uppercase">
               Inteligência de Mercado
             </span>
           </div>
         </div>
 
-        {/* LADO DIREITO: LIVE STATUS + BOTÕES */}
-        <div className="flex items-center gap-4 md:gap-8">
-          {/* INDICADOR LIVE */}
-          <div className="hidden lg:flex items-center gap-2 pr-4 border-r border-white/5">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-cyan-500/80 uppercase font-mono">
+        {/* LADO DIREITO: STATUS + CTAs */}
+        <div className="flex items-center gap-3 md:gap-6">
+          {/* INDICADOR LIVE (Oculto em telas muito pequenas) */}
+          <div className="hidden sm:flex items-center gap-2 pr-3 border-r border-white/5">
+            <span className="h-1 w-1 rounded-full bg-cyan-500 animate-pulse"></span>
+            <span className="text-[9px] font-semibold tracking-[0.15em] text-cyan-500/70 uppercase font-mono">
               LIVE • CRONOS BRAIN
             </span>
           </div>
 
           {/* BOTÕES DE LOGIN / CONTA */}
-          <div className="flex items-center gap-3 md:gap-5">
+          <div className="flex items-center gap-3">
             {!user ? (
               <>
                 <button 
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors uppercase tracking-wider"
+                  className="text-[10px] font-semibold text-gray-400 hover:text-white transition-colors uppercase tracking-wider"
                   onClick={() => navigate('/auth')}
                 >
                   Entrar
                 </button>
                 <Button 
-                  className="bg-cyan-500 hover:bg-cyan-400 text-[#020817] font-bold text-[10px] md:text-xs uppercase tracking-[0.1em] px-4 md:px-6 h-9 rounded-md transition-all active:scale-95 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                  className="bg-cyan-500 hover:bg-cyan-400 text-[#020817] font-bold text-[10px] uppercase tracking-wider px-4 h-8 rounded-sm transition-all active:scale-95"
                   onClick={() => navigate('/auth')}
                 >
                   Criar Conta
                 </Button>
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-gray-400 hover:text-white"
+                  className="h-8 w-8 text-gray-400 hover:text-white"
                   onClick={() => navigate('/profile')}
                 >
-                  <User className="h-5 w-5" />
+                  <User className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-gray-400 hover:text-red-400"
+                  className="h-8 w-8 text-gray-400 hover:text-red-400"
                   onClick={() => signOut()}
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             )}
