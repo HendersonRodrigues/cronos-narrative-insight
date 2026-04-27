@@ -35,25 +35,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 // No AuthContext.tsx, altere para isto:
 
 const fetchProfileData = async (userId: string) => {
-  if (!supabase) return;
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      // REMOVIDO: "email" desta lista abaixo
-      .select("id, full_name, avatar_url, updated_at, created_at") 
-      .eq("id", userId)
-      .maybeSingle();
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, updated_at, role, risk_profile") // Colunas reais do seu banco
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (error) throw error;
-    setProfileData((data as ProfileDataRow) ?? null);
-  } catch (err) {
-    console.warn(
-      "[Auth] profiles indisponível:",
-      (err as Error)?.message,
-    );
-    setProfileData(null);
-  }
-};
+      if (error) throw error;
+      
+      // Mapeamos para ProfileDataRow. 
+      // Como 'email' e 'created_at' estão na interface mas não no select, eles serão null, o que não quebra o código.
+      setProfileData((data as ProfileDataRow) ?? null);
+    } catch (err) {
+      console.warn(
+        "[Auth] Erro ao carregar perfil:",
+        (err as Error)?.message,
+      );
+      setProfileData(null);
+    }
+  };
 
   /**
    * Resolve o role do usuário usando a função RPC `has_role` (SECURITY DEFINER).
