@@ -38,14 +38,15 @@ export default function Oportunidades() {
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-64 w-[640px] rounded-full bg-accent/10 blur-3xl pointer-events-none" />
     
         {/* Ajustado: py-8 md:py-12 (antes era 16/24) e space-y-4 (antes era 6) */}
-        <div className="container max-w-[1200px] mx-auto px-4 py-6 md:py-10 relative space-y-4 text-center">
+        <div className="container max-w-[1200px] mx-auto px-4 py-8 md:py-12 relative space-y-4 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
               Curadoria Proprietária
             </span>
           </div>
-  
+          
+      
             <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight text-foreground leading-[1.05] max-w-3xl mx-auto">
               Oportunidades de{" "}
               <span className="text-accent">Diversificação Estratégica</span>
@@ -59,7 +60,7 @@ export default function Oportunidades() {
         </section>
 
         {/* Grid */}
-        <section className="container max-w-[1200px] mx-auto px-4 py-12 md:py-10">
+        <section className="container max-w-[1200px] mx-auto px-4 py-12 md:py-16">
           {loading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[0, 1, 2].map((i) => (
