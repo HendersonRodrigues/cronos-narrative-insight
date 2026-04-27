@@ -36,7 +36,9 @@ async function invokeBrain({ message, profile, userId }: BrainInput): Promise<Cr
         body: { 
           prompt: message,
           userProfile: userProfile,
-          userId: userId // ADICIONADO: Agora o ID viaja até a Edge Function
+          userId: user?.id || null, // Se não estiver logado, envia null
+          // AQUI A TRAVA: Só envia a lista se profileData existir, senão envia array vazio
+          userInterests: profileData?.interests || []
         },
         headers: {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
