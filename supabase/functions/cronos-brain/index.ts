@@ -62,7 +62,6 @@ function isMeaningfulPrompt(prompt: string): { ok: boolean; reason?: string } {
 
 async function callMistralWithRetry(apiKey: string, messages: MistralMessage[]): Promise<{ answer: string }> {
   let lastErrorMessage = "Erro na IA.";
-  let lastStatus = 500;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController();
@@ -90,7 +89,6 @@ async function callMistralWithRetry(apiKey: string, messages: MistralMessage[]):
 
       if (mistralRes.ok && typeof answer === "string" && answer.trim()) return { answer };
 
-      lastStatus = mistralRes.status || 500;
       lastErrorMessage = data?.error?.message || "Erro na IA.";
 
       if (!(mistralRes.status === 429 || mistralRes.status >= 500) || attempt === MAX_RETRIES) break;
@@ -98,7 +96,6 @@ async function callMistralWithRetry(apiKey: string, messages: MistralMessage[]):
     } catch (err) {
       clearTimeout(timeoutId);
       const isAbort = err instanceof DOMException && err.name === "AbortError";
-      lastStatus = isAbort ? 504 : 503;
       lastErrorMessage = isAbort ? "Timeout na chamada." : "Falha de rede.";
       if (attempt === MAX_RETRIES) break;
       await sleep(300 * (attempt + 1));
@@ -114,13 +111,15 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
-    const userId = body?.userId || body?.user_id;
     
-    // Captura dos interesses para contexto adicional
+    // Captura segura de IDs (userId deve ser enviado pelo front)
+    const userId = body?.userId || body?.user_id || null;
+    
+    // Captura de interesses (contexto adicional)
     const userInterests = Array.isArray(body?.userInterests) ? body.userInterests : [];
     const interestsContext = userInterests.length > 0 
-      ? `Interesses e foco estratégico do usuário: ${userInterests.join(", ")}.` 
-      : "O usuário não definiu interesses específicos.";
+      ? `Interesses estratégicos do usuário: ${userInterests.join(", ")}.` 
+      : "O usuário não definiu interesses específicos ainda.";
 
     const rawProfile = body?.profile || body?.userProfile || "moderado";
     const userProfile = rawProfile.toLowerCase().trim();
@@ -164,7 +163,6 @@ serve(async (req) => {
       content_historical: trimText(n.content_historical, 900)
     })));
 
-    // System Prompt atualizado com o contexto de interesses
     const systemPrompt = `You are Cronos Brain, a Senior Investment Strategist. Your profile: ${userProfile}. 
 ${interestsContext}
 Data: ${context}. History: ${historicalBase}.
@@ -173,16 +171,16 @@ STRICT COMPLIANCE & OPERATIONAL RULES:
 1. CVM COMPLIANCE: Act ONLY as an educator. No buy/sell recommendations. Use "Study/Analysis" instead of "Indication".
 2. HOOK CONSTRAINT: ONE paragraph (max 3 lines). MUST end with a relevant tip for a beginner investor.
 3. MARKER: After the first paragraph, print exactly "[DETALHES]" in a standalone line.
-4. INTEGRATED GLOSSARY: Explain technical terms in parentheses immediately—e.g. "Duration (sensibilidade do preço)".
+4. INTEGRATED GLOSSARY: Explain technical terms in parentheses immediately.
 5. OUTPUT FORMAT: Respond ONLY with plain text and Markdown. Do NOT use JSON brackets {} or labels like [HOOK]/[ANALYSIS].
-6. PERSONALIZATION: Use the user's strategic interests as additional context, especially in the practical orientation and tactical roadmap.
-7. TOKEN SAFETY: Max 420 words. If near the limit, prioritize finishing the "Tactical Roadmap" and closing the text with a period.
+6. PERSONALIZATION: Use the user's strategic interests as additional context for practical orientation.
+7. TOKEN SAFETY: Max 420 words.
 
 STRUCTURE:
 - Intro Paragraph + Beginner Tip.
 - [DETALHES]
 - Body: Narrative connecting current data to historical cycles (rhymes) + 1 Comparative Table.
-- Strategy: Explain the value of non-correlated assets (ativo descorrelacionado) to instigate study.
+- Strategy: Explain the value of non-correlated assets (ativos descorrelacionados).
 - Tactical Roadmap: 3 study topics to end the message.
 
 Respond in PORTUGUESE. Ensure all Markdown tags are closed.`;
@@ -192,17 +190,19 @@ Respond in PORTUGUESE. Ensure all Markdown tags are closed.`;
       { role: "user", content: prompt },
     ]);
 
-    // Inserção no banco com o payload expandido para conter interesses
-    await supabase.from("user_analytics").insert([{
-      user_id: userId,
-      query_text: prompt,
-      payload: { 
-        answer,
-        user_interests: userInterests // Registrando para insights internos
-      },
-      selected_profile: userProfile,
-      event_type: "ai_insight",
-    }]);
+    // Registro no banco utilizando o userId verificado
+    if (userId) {
+      await supabase.from("user_analytics").insert([{
+        user_id: userId,
+        query_text: prompt,
+        payload: { 
+          answer,
+          user_interests: userInterests 
+        },
+        selected_profile: userProfile,
+        event_type: "ai_insight",
+      }]);
+    }
 
     return jsonResponse({ answer });
   } catch (err) {
