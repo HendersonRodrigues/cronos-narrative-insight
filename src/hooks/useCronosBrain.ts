@@ -4,10 +4,12 @@ import { supabase } from "@/lib/supabase";
 import { SUPABASE_ANON_KEY } from "@/config/supabaseConfig";
 import type { CronosBrainResponse, ProfileType } from "@/types/cronos";
 
+// 1. Atualizamos a interface para receber explicitamente o que a função precisa
 interface BrainInput {
   message: string;
   profile: ProfileType;
-  userId?: string; // Adicionado
+  userId?: string | null;
+  interests?: string[]; // Adicionado para os interesses estratégicos
 }
 
 const FRIENDLY_FALLBACK =
@@ -24,10 +26,12 @@ async function readEdgeErrorBody(error: unknown): Promise<string | null> {
   }
 }
 
-async function invokeBrain({ message, profile, userId }: BrainInput): Promise<CronosBrainResponse> {
+// 2. A função agora usa EXCLUSIVAMENTE os dados passados pelo objeto de entrada
+async function invokeBrain({ message, profile, userId, interests }: BrainInput): Promise<CronosBrainResponse> {
   if (!supabase) throw new Error("Supabase não configurado");
 
   const userProfile = profile ?? "moderado";
+  const userInterests = interests || [];
 
   try {
     const { data, error } = await supabase.functions.invoke<CronosBrainResponse>(
@@ -36,9 +40,8 @@ async function invokeBrain({ message, profile, userId }: BrainInput): Promise<Cr
         body: { 
           prompt: message,
           userProfile: userProfile,
-          userId: user?.id || null, // Se não estiver logado, envia null
-          // AQUI A TRAVA: Só envia a lista se profileData existir, senão envia array vazio
-          userInterests: profileData?.interests || []
+          userId: userId || null, // Recebido via argumento
+          userInterests: userInterests // Recebido via argumento
         },
         headers: {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -51,14 +54,13 @@ async function invokeBrain({ message, profile, userId }: BrainInput): Promise<Cr
       const raw = await readEdgeErrorBody(error);
       console.error("[cronos-brain] Falha na invocação:", error, "raw:", raw);
 
-      // Tenta extrair mensagem amigável do payload retornado
       let friendly = FRIENDLY_FALLBACK;
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
           if (typeof parsed?.error === "string") friendly = parsed.error;
         } catch {
-          /* corpo não-JSON, usa fallback */
+          /* corpo não-JSON */
         }
       }
 
@@ -66,7 +68,6 @@ async function invokeBrain({ message, profile, userId }: BrainInput): Promise<Cr
       throw new Error(friendly);
     }
 
-    // Validação estrita do shape esperado: { answer: string }
     if (!data || typeof data.answer !== "string" || data.answer.trim().length === 0) {
       console.error("[cronos-brain] Resposta inválida:", data);
       toast.error("Resposta inválida", {
@@ -77,7 +78,6 @@ async function invokeBrain({ message, profile, userId }: BrainInput): Promise<Cr
 
     return data;
   } catch (err) {
-    // Garante que qualquer erro de rede/parse também seja tratado de forma amigável
     if (err instanceof Error && err.message !== "Resposta inválida") {
       console.error("[cronos-brain] Erro inesperado:", err);
     }
