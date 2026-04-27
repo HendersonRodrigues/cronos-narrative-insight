@@ -29,30 +29,19 @@ export default function Oportunidades() {
   }
 
   return (
-   <main className="flex-1">
-
+    <div className="min-h-[calc(100vh-73px)] flex flex-col bg-background">
+      <main className="flex-1">
         {/* Hero */}
-
         <section className="relative overflow-hidden border-b border-border/40">
-
           <div className="absolute inset-0 bg-grid opacity-[0.04] pointer-events-none" />
-
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-72 w-[640px] rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
-
-
           <div className="container max-w-[1200px] mx-auto px-4 py-16 md:py-24 relative space-y-6 text-center">
-
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1">
-
               <Sparkles className="h-3.5 w-3.5 text-accent" />
-
               <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
-
                 Curadoria Proprietária
-
               </span>
-
             </div>
           
       
