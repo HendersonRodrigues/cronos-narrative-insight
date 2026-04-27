@@ -114,7 +114,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
-    const userId = body?.userId;
+    const userId = body?.userId || body?.user_id;
     
     // Normalização do perfil para minúsculas e captura flexível de campos
     const rawProfile = body?.profile || body?.userProfile || "moderado";
@@ -186,11 +186,11 @@ Respond in PORTUGUESE. Ensure all Markdown tags are closed.`;
     ]);
 
     await supabase.from("user_analytics").insert([{
-      user_id: userId,
-      query_text: prompt,
-      payload: { answer },
-      selected_profile: userProfile, // Salva o perfil normalizado em minúsculas
-      event_type: "ai_insight",
+  user_id: userId, // Certifique-se de que esta variável não está nula aqui
+  query_text: prompt,
+  payload: { answer },
+  selected_profile: userProfile,
+  event_type: "ai_insight",
     }]);
 
     return jsonResponse({ answer });
