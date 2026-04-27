@@ -116,7 +116,12 @@ serve(async (req) => {
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const userId = body?.userId || body?.user_id;
     
-    // Normalização do perfil para minúsculas e captura flexível de campos
+    // Captura dos interesses para contexto adicional
+    const userInterests = Array.isArray(body?.userInterests) ? body.userInterests : [];
+    const interestsContext = userInterests.length > 0 
+      ? `Interesses e foco estratégico do usuário: ${userInterests.join(", ")}.` 
+      : "O usuário não definiu interesses específicos.";
+
     const rawProfile = body?.profile || body?.userProfile || "moderado";
     const userProfile = rawProfile.toLowerCase().trim();
 
@@ -130,11 +135,11 @@ serve(async (req) => {
     const CACHE_TTL_HOURS = 48;
     const thresholdDate = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString();
 
-    const { data: cacheData, error: cacheError } = await supabase
+    const { data: cacheData } = await supabase
       .from("user_analytics")
       .select("payload")
       .eq("query_text", prompt)
-      .eq("selected_profile", userProfile) // Usa a variável normalizada
+      .eq("selected_profile", userProfile)
       .eq("event_type", "ai_insight")
       .gt("created_at", thresholdDate)
       .order("created_at", { ascending: false })
@@ -159,7 +164,9 @@ serve(async (req) => {
       content_historical: trimText(n.content_historical, 900)
     })));
 
-  const systemPrompt = `You are Cronos Brain, a Senior Investment Strategist. Your profile: ${userProfile}. 
+    // System Prompt atualizado com o contexto de interesses
+    const systemPrompt = `You are Cronos Brain, a Senior Investment Strategist. Your profile: ${userProfile}. 
+${interestsContext}
 Data: ${context}. History: ${historicalBase}.
 
 STRICT COMPLIANCE & OPERATIONAL RULES:
@@ -168,7 +175,8 @@ STRICT COMPLIANCE & OPERATIONAL RULES:
 3. MARKER: After the first paragraph, print exactly "[DETALHES]" in a standalone line.
 4. INTEGRATED GLOSSARY: Explain technical terms in parentheses immediately—e.g. "Duration (sensibilidade do preço)".
 5. OUTPUT FORMAT: Respond ONLY with plain text and Markdown. Do NOT use JSON brackets {} or labels like [HOOK]/[ANALYSIS].
-6. TOKEN SAFETY: Max 420 words. If near the limit, prioritize finishing the "Tactical Roadmap" and closing the text with a period.
+6. PERSONALIZATION: Use the user's strategic interests as additional context, especially in the practical orientation and tactical roadmap.
+7. TOKEN SAFETY: Max 420 words. If near the limit, prioritize finishing the "Tactical Roadmap" and closing the text with a period.
 
 STRUCTURE:
 - Intro Paragraph + Beginner Tip.
@@ -178,19 +186,22 @@ STRUCTURE:
 - Tactical Roadmap: 3 study topics to end the message.
 
 Respond in PORTUGUESE. Ensure all Markdown tags are closed.`;
-  
 
     const { answer } = await callMistralWithRetry(mistralApiKey, [
       { role: "system", content: systemPrompt },
       { role: "user", content: prompt },
     ]);
 
+    // Inserção no banco com o payload expandido para conter interesses
     await supabase.from("user_analytics").insert([{
-  user_id: userId, // Certifique-se de que esta variável não está nula aqui
-  query_text: prompt,
-  payload: { answer },
-  selected_profile: userProfile,
-  event_type: "ai_insight",
+      user_id: userId,
+      query_text: prompt,
+      payload: { 
+        answer,
+        user_interests: userInterests // Registrando para insights internos
+      },
+      selected_profile: userProfile,
+      event_type: "ai_insight",
     }]);
 
     return jsonResponse({ answer });
