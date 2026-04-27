@@ -32,24 +32,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Resiliente: se a tabela não existir ou houver erro de RLS, mantém null
    * sem quebrar o fluxo de autenticação.
    */
-  const fetchProfileData = async (userId: string) => {
-    if (!supabase) return;
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url, email, updated_at, created_at")
-        .eq("id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      setProfileData((data as ProfileDataRow) ?? null);
-    } catch (err) {
-      console.warn(
-        "[Auth] profiles indisponível:",
-        (err as Error)?.message,
-      );
-      setProfileData(null);
-    }
-  };
+// No AuthContext.tsx, altere para isto:
+
+const fetchProfileData = async (userId: string) => {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      // REMOVIDO: "email" desta lista abaixo
+      .select("id, full_name, avatar_url, updated_at, created_at") 
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    setProfileData((data as ProfileDataRow) ?? null);
+  } catch (err) {
+    console.warn(
+      "[Auth] profiles indisponível:",
+      (err as Error)?.message,
+    );
+    setProfileData(null);
+  }
+};
 
   /**
    * Resolve o role do usuário usando a função RPC `has_role` (SECURITY DEFINER).
