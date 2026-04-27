@@ -2,8 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
@@ -42,49 +43,24 @@ function trimText(input: unknown, max = 500): string {
 
 function isMeaningfulPrompt(prompt: string): { ok: boolean; reason?: string } {
   const normalized = prompt.trim();
-  if (!normalized) {
-    return { ok: false, reason: "O conteúdo da pergunta não pode estar vazio." };
-  }
-
-  // Bloqueia entradas muito curtas
-  if (normalized.length < 4) {
-    return { ok: false, reason: "Digite uma pergunta mais completa para análise." };
-  }
-
-  // Bloqueia entradas só com números
-  if (/^\d+$/.test(normalized.replace(/\s+/g, ""))) {
-    return { ok: false, reason: "A pergunta não pode conter apenas números." };
-  }
-
-  // Bloqueia entradas com excesso de símbolos
+  if (!normalized) return { ok: false, reason: "O conteúdo da pergunta não pode estar vazio." };
+  if (normalized.length < 4) return { ok: false, reason: "Digite uma pergunta mais completa para análise." };
+  if (/^\d+$/.test(normalized.replace(/\s+/g, ""))) return { ok: false, reason: "A pergunta não pode conter apenas números." };
+  
   const symbols = normalized.match(/[^\p{L}\p{N}\s]/gu) ?? [];
   const compact = normalized.replace(/\s/g, "");
-  if (compact.length > 0 && symbols.length / compact.length > 0.45) {
-    return { ok: false, reason: "Texto inválido. Escreva uma pergunta em linguagem natural." };
-  }
-
-  // Requer pelo menos uma quantidade mínima de letras
+  if (compact.length > 0 && symbols.length / compact.length > 0.45) return { ok: false, reason: "Texto inválido. Escreva uma pergunta em linguagem natural." };
+  
   const letters = normalized.match(/\p{L}/gu) ?? [];
-  if (letters.length < 4) {
-    return { ok: false, reason: "Escreva uma pergunta com palavras legíveis." };
-  }
+  if (letters.length < 4) return { ok: false, reason: "Escreva uma pergunta com palavras legíveis." };
 
-  // Requer ao menos 2 palavras com 2+ letras (evita ruído tipo 'a b c')
-  const words = normalized
-    .split(/\s+/)
-    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
-    .filter((w) => w.length >= 2 && /\p{L}/u.test(w));
-  if (words.length < 2) {
-    return { ok: false, reason: "Escreva uma pergunta com mais contexto." };
-  }
+  const words = normalized.split(/\s+/).filter(w => w.length >= 2);
+  if (words.length < 2) return { ok: false, reason: "Escreva uma pergunta com mais contexto." };
 
   return { ok: true };
 }
 
-async function callMistralWithRetry(
-  apiKey: string,
-  messages: MistralMessage[],
-): Promise<{ answer: string }> {
+async function callMistralWithRetry(apiKey: string, messages: MistralMessage[]): Promise<{ answer: string }> {
   let lastErrorMessage = "Erro na IA.";
   let lastStatus = 500;
 
@@ -103,44 +79,30 @@ async function callMistralWithRetry(
           model: MISTRAL_MODEL,
           messages,
           temperature: 0.2,
-          max_tokens: 900,
+          max_tokens: 1100,
         }),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-
       const data = await mistralRes.json().catch(() => ({}));
       const answer = data?.choices?.[0]?.message?.content;
 
-      if (mistralRes.ok && typeof answer === "string" && answer.trim()) {
-        return { answer };
-      }
+      if (mistralRes.ok && typeof answer === "string" && answer.trim()) return { answer };
 
       lastStatus = mistralRes.status || 500;
       lastErrorMessage = data?.error?.message || "Erro na IA.";
 
-      const retryable = mistralRes.status === 429 || mistralRes.status >= 500;
-      if (!retryable || attempt === MAX_RETRIES) break;
+      if (!(mistralRes.status === 429 || mistralRes.status >= 500) || attempt === MAX_RETRIES) break;
       await sleep(300 * (attempt + 1));
     } catch (err) {
       clearTimeout(timeoutId);
       const isAbort = err instanceof DOMException && err.name === "AbortError";
       lastStatus = isAbort ? 504 : 503;
-      lastErrorMessage = isAbort
-        ? "Timeout na chamada ao provedor de IA."
-        : "Falha de rede ao consultar o provedor de IA.";
-
+      lastErrorMessage = isAbort ? "Timeout na chamada." : "Falha de rede.";
       if (attempt === MAX_RETRIES) break;
       await sleep(300 * (attempt + 1));
     }
-  }
-
-  if (lastStatus === 429) {
-    throw new Error("RATE_LIMIT::O provedor de IA está com limite de requisições no momento.");
-  }
-  if (lastStatus === 503 || lastStatus === 504) {
-    throw new Error("UPSTREAM_UNAVAILABLE::Provedor de IA indisponível no momento.");
   }
   throw new Error(`UPSTREAM_ERROR::${lastErrorMessage}`);
 }
@@ -152,127 +114,87 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
-    const userProfile = typeof body?.userProfile === "string" && body.userProfile.trim()
-      ? body.userProfile.trim()
-      : "Moderado";
+    const userId = body?.userId;
+    
+    // Normalização do perfil para minúsculas e captura flexível de campos
+    const rawProfile = body?.profile || body?.userProfile || "moderado";
+    const userProfile = rawProfile.toLowerCase().trim();
 
     const validation = isMeaningfulPrompt(prompt);
-    if (!validation.ok) {
-      return jsonResponse({ error: validation.reason }, 400);
-    }
+    if (!validation.ok) return jsonResponse({ error: validation.reason }, 400);
 
-    const supabase = createClient(
-      getRequiredEnv("SUPABASE_URL"),
-      getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    );
+    const supabase = createClient(getRequiredEnv("SUPABASE_URL"), getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"));
     const mistralApiKey = getRequiredEnv("MISTRAL_API_KEY");
 
-    // Cache por pergunta/perfil
-    const { data: cacheData } = await supabase
+    // Cache Global de 48h
+    const CACHE_TTL_HOURS = 48;
+    const thresholdDate = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString();
+
+    const { data: cacheData, error: cacheError } = await supabase
       .from("user_analytics")
       .select("payload")
       .eq("query_text", prompt)
-      .eq("selected_profile", userProfile)
+      .eq("selected_profile", userProfile) // Usa a variável normalizada
+      .eq("event_type", "ai_insight")
+      .gt("created_at", thresholdDate)
       .order("created_at", { ascending: false })
       .limit(1);
 
     if (cacheData?.length && cacheData[0]?.payload) {
-      const cachedAnswer = typeof cacheData[0].payload === "string"
-        ? cacheData[0].payload
+      const cachedAnswer = typeof cacheData[0].payload === "string" 
+        ? cacheData[0].payload 
         : cacheData[0].payload.answer;
-
-      if (typeof cachedAnswer === "string" && cachedAnswer.trim()) {
-        return jsonResponse({ answer: cachedAnswer });
+        
+      if (cachedAnswer) {
+        return jsonResponse({ answer: cachedAnswer, cached: true });
       }
     }
 
-    // Evita erro por coluna inexistente (change_pct não está no schema confirmado)
-    const { data: marketData, error: marketErr } = await supabase
-      .from("market_data")
-      .select("asset_id, value, date")
-      .order("date", { ascending: false })
-      .limit(15);
-    if (marketErr) throw new Error(`DB_MARKET_ERROR::${marketErr.message}`);
+    const { data: marketData } = await supabase.from("market_data").select("asset_id, value, date").order("date", { ascending: false }).limit(15);
+    const { data: narratives } = await supabase.from("narratives").select("asset_id, title, market_regime, content_historical, content_weekly, question_past_rhyme, question_realistic_view").limit(8);
 
-    const { data: narratives, error: narrativesErr } = await supabase
-      .from("narratives")
-      .select(
-        "asset_id, title, market_regime, content_historical, content_weekly, question_past_rhyme, question_realistic_view",
-      )
-      .limit(8);
-    if (narrativesErr) throw new Error(`DB_NARRATIVES_ERROR::${narrativesErr.message}`);
+    const context = JSON.stringify(marketData ?? []);
+    const historicalBase = JSON.stringify((narratives ?? []).map(n => ({
+      ...n,
+      content_historical: trimText(n.content_historical, 900)
+    })));
 
-    const compactMarket = (marketData ?? []).map((item) => ({
-      asset_id: item.asset_id,
-      value: item.value,
-      date: item.date,
-    }));
-    const compactNarratives = (narratives ?? []).map((item) => ({
-      asset_id: item.asset_id,
-      title: trimText(item.title, 120),
-      market_regime: trimText(item.market_regime, 180),
-      content_historical: trimText(item.content_historical, 900),
-      content_weekly: trimText(item.content_weekly, 600),
-      question_past_rhyme: trimText(item.question_past_rhyme, 220),
-      question_realistic_view: trimText(item.question_realistic_view, 220),
-    }));
+  const systemPrompt = `You are Cronos Brain, a Senior Investment Strategist. Your profile: ${userProfile}. 
+Data: ${context}. History: ${historicalBase}.
 
-    const context = JSON.stringify(compactMarket);
-    const historicalBase = JSON.stringify(compactNarratives);
+STRICT COMPLIANCE & OPERATIONAL RULES:
+1. CVM COMPLIANCE: Act ONLY as an educator. No buy/sell recommendations. Use "Study/Analysis" instead of "Indication".
+2. HOOK CONSTRAINT: ONE paragraph (max 3 lines). MUST end with a relevant tip for a beginner investor.
+3. MARKER: After the first paragraph, print exactly "[DETALHES]" in a standalone line.
+4. INTEGRATED GLOSSARY: Explain technical terms in parentheses immediately—e.g. "Duration (sensibilidade do preço)".
+5. OUTPUT FORMAT: Respond ONLY with plain text and Markdown. Do NOT use JSON brackets {} or labels like [HOOK]/[ANALYSIS].
+6. TOKEN SAFETY: Max 420 words. If near the limit, prioritize finishing the "Tactical Roadmap" and closing the text with a period.
 
-    const systemPrompt = `Você é o Cronos Brain, estrategista financeiro de elite.
-Perfil do Usuário: ${userProfile}.
+STRUCTURE:
+- Intro Paragraph + Beginner Tip.
+- [DETALHES]
+- Body: Narrative connecting current data to historical cycles (rhymes) + 1 Comparative Table.
+- Strategy: Explain the value of non-correlated assets (ativos descorrelacionados) to instigate study.
+- Tactical Roadmap: 3 study topics to end the message.
 
-DADOS ATUAIS DO MERCADO: ${context}.
-BASE HISTÓRICA DE CICLOS (NARRATIVAS): ${historicalBase}.
-
-DIRETRIZES DE LINGUAGEM:
-- Regra da Avó: Explique conceitos complexos de forma didática no resumo.
-- Tradução de Jargão: Se usar termos técnicos (ex: Z-Score, RSI), explique brevemente entre parênteses.
-
-ESTRUTURA DE RESPOSTA (OBRIGATÓRIA):
-1. RESUMO (máximo de 4 linhas): Foco Iniciante. Linguagem simples, direta. Termine com "Ponte Tática: [estudo]".
-2. MARCADOR: [DETALHES] (em uma linha isolada).
-3. ANÁLISE PROFUNDA: Foco Experiente. Use termos técnicos e correlações macro.
-4. Seja extremamente direto. Evite repetições.
-
-RESTRIÇÕES:
-- Português (Brasil). Sem saudações.
-- PROIBIDO recomendação de compra ou venda.
-- Respeite o limite de tokens. Complete a mensagem antes do limite.`;
+Respond in PORTUGUESE. Ensure all Markdown tags are closed.`;
+  
 
     const { answer } = await callMistralWithRetry(mistralApiKey, [
       { role: "system", content: systemPrompt },
       { role: "user", content: prompt },
     ]);
 
-    await supabase.from("user_analytics").insert([
-      {
-        query_text: prompt,
-        payload: { answer },
-        selected_profile: userProfile,
-        event_type: "ai_insight",
-      },
-    ]);
+    await supabase.from("user_analytics").insert([{
+      user_id: userId,
+      query_text: prompt,
+      payload: { answer },
+      selected_profile: userProfile, // Salva o perfil normalizado em minúsculas
+      event_type: "ai_insight",
+    }]);
 
     return jsonResponse({ answer });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro interno.";
-    console.error("FUNCTION ERROR:", message);
-
-    if (message.startsWith("RATE_LIMIT::")) {
-      return jsonResponse({ error: message.replace("RATE_LIMIT::", "") }, 429);
-    }
-    if (message.startsWith("UPSTREAM_UNAVAILABLE::")) {
-      return jsonResponse({ error: message.replace("UPSTREAM_UNAVAILABLE::", "") }, 503);
-    }
-    if (message.startsWith("UPSTREAM_ERROR::")) {
-      return jsonResponse({ error: message.replace("UPSTREAM_ERROR::", "") }, 502);
-    }
-    if (message.startsWith("DB_")) {
-      return jsonResponse({ error: "Falha ao consultar dados internos." }, 500);
-    }
-
-    return jsonResponse({ error: message }, 500);
+    return jsonResponse({ error: err.message }, 500);
   }
 });
