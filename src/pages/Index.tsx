@@ -128,7 +128,7 @@ const Index = () => {
       
       <hr className="border-border/5" />
 
-      {/* 3. Consultoria Inteligente */}
+      {/* 3. Entrada: Consultoria Inteligente (Pergunta Livre + Fixas) */}
       <section className="space-y-6">
         <ProfileLens profile={profile} onChange={setProfile} />
         <ConsultoriaInteligente
@@ -138,12 +138,41 @@ const Index = () => {
         />
       </section>
 
-      {/* 4. Histórico de Consultas (Tabela) */}
+      {/* 4. Saída: Resposta da IA (ResponseDisplay) */}
+      <div id="response-area" className="scroll-mt-10 min-h-[100px]">
+        <AnimatePresence mode="wait">
+          {lastQuestion && (
+            <motion.div
+              key={lastQuestion}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <ResponseDisplay
+                isLoading={brain.isPending}
+                error={brain.error as Error | null}
+                answer={cachedAnswer || brain.data?.answer || null}
+                question={lastQuestion}
+              />
+              {expirationInfo.expired && cachedAnswer && (
+                <div className="mt-3 flex items-center gap-2 px-4 py-3 rounded-md bg-caution/10 border border-caution/20 text-caution text-[11px] font-mono uppercase tracking-wider">
+                  <span className="shrink-0">⚠️</span>
+                  <span>
+                    Análise realizada em <strong>{expirationInfo.date}</strong>. 
+                    O cenário macro pode ter sofrido alterações significativas desde então.
+                  </span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* 5. Arquivo: Histórico de Consultas (Tabela) */}
       {user && history.data && history.data.length > 0 && (
         <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-2 text-muted-foreground border-t border-border/10 pt-6">
             <History className="h-3.5 w-3.5 text-primary" />
-            <h2 className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-80">Histórico de Consultas</h2>
+            <h2 className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-80">Histórico de Consultas Realizadas</h2>
           </div>
           <div className="rounded-lg border border-border/40 bg-card/20 overflow-hidden">
             <table className="w-full text-left text-sm">
@@ -179,35 +208,6 @@ const Index = () => {
           </div>
         </section>
       )}
-
-      {/* 5. Exibição da Resposta */}
-      <div id="response-area" className="scroll-mt-10">
-        <AnimatePresence mode="wait">
-          {lastQuestion && (
-            <motion.div
-              key={lastQuestion}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <ResponseDisplay
-                isLoading={brain.isPending}
-                error={brain.error as Error | null}
-                answer={cachedAnswer || brain.data?.answer || null}
-                question={lastQuestion}
-              />
-              {expirationInfo.expired && cachedAnswer && (
-                <div className="mt-3 flex items-center gap-2 px-4 py-3 rounded-md bg-caution/10 border border-caution/20 text-caution text-[11px] font-mono uppercase tracking-wider">
-                  <span className="shrink-0">⚠️</span>
-                  <span>
-                    Análise realizada em <strong>{expirationInfo.date}</strong>. 
-                    O cenário macro pode ter sofrido alterações significativas desde então.
-                  </span>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* 6. Oportunidade Estratégica */}
       <MonetizationBanner />
