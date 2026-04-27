@@ -9,17 +9,15 @@ import ConsultoriaInteligente from "@/components/ConsultoriaInteligente";
 import ResponseDisplay from "@/components/ResponseDisplay";
 import MonetizationBanner from "@/components/MonetizationBanner";
 import FooterFeed from "@/components/FooterFeed";
-import EmptyState from "@/components/EmptyState";
 import { useProfile } from "@/hooks/useProfile";
 import { useCronosBrain } from "@/hooks/useCronosBrain";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveDisplayName } from "@/lib/displayName";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import { History, ArrowRight, MessageSquare } from "lucide-react";
+import { History } from "lucide-react";
 
 // Hook para buscar histórico (apenas para logados)
 function useInsightHistory(userId?: string) {
@@ -31,7 +29,7 @@ function useInsightHistory(userId?: string) {
       if (!supabase || !userId) return [];
       const { data, error } = await supabase
         .from("user_analytics")
-        .select("id, query_text, selected_profile, created_at")
+        .select("id, query_text, selected_profile, created_at, payload")
         .eq("user_id", userId)
         .eq("event_type", "ai_insight")
         .order("created_at", { ascending: false })
@@ -47,12 +45,47 @@ const Index = () => {
   const { profile, setProfile } = useProfile();
   const brain = useCronosBrain();
   const queryClient = useQueryClient();
+  
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
+  const [cachedAnswer, setCachedAnswer] = useState<string | null>(null);
+  const [expirationInfo, setExpirationInfo] = useState<{ expired: boolean; date: string | null }>({ 
+    expired: false, 
+    date: null 
+  });
+
   const history = useInsightHistory(user?.id);
+
+  // Manipula clique no histórico
+  const handleHistoryClick = (item: any) => {
+    const formattedDate = new Date(item.created_at).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const hoursOld = Math.abs(Date.now() - new Date(item.created_at).getTime()) / 36e5;
+    
+    setLastQuestion(item.query_text);
+    setCachedAnswer(item.payload?.answer || item.payload);
+    setExpirationInfo({ 
+      expired: hoursOld > 48, 
+      date: formattedDate 
+    });
+
+    // Scroll suave para a resposta
+    setTimeout(() => {
+      document.getElementById("response-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
 
   function handleAsk(message: string) {
     if (!message.trim() || brain.isPending) return;
+    
     setLastQuestion(message);
+    setCachedAnswer(null);
+    setExpirationInfo({ expired: false, date: null });
     
     brain.mutate(
       { message, profile },
@@ -61,6 +94,9 @@ const Index = () => {
           if (user) {
             queryClient.invalidateQueries({ queryKey: ["insight_history", user?.id] });
           }
+          setTimeout(() => {
+            document.getElementById("response-area")?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
         },
       },
     );
@@ -77,75 +113,105 @@ const Index = () => {
     );
   }
 
-  // --- COMPONENTE DE CONTEÚDO PRINCIPAL (Vitrine + Dashboard) ---
   const MainContent = () => (
     <main className="container max-w-[1200px] mx-auto flex-1 px-4 py-8 space-y-10">
-      {/* 1. Insight do Dia (DailyBriefing) */}
+      {/* 1. Insight do Dia */}
       <DailyBriefing />
       
-      {/* 2. Painel de Mercado e Ativos */}
+      {/* 2. Painel de Mercado */}
       <MarketDashboard />
       
-      {/* 3. Lógica de Histórico (Só aparece se logado e com itens) */}
+      <hr className="border-border/5" />
+
+      {/* 3. Consultoria Inteligente */}
+      <section className="space-y-6">
+        <ProfileLens profile={profile} onChange={setProfile} />
+        <ConsultoriaInteligente
+          profile={profile}
+          isLoading={brain.isPending}
+          onSubmit={handleAsk}
+        />
+      </section>
+
+      {/* 4. Histórico de Consultas (Tabela) */}
       {user && history.data && history.data.length > 0 && (
-        <section className="space-y-4">
+        <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <History className="h-4 w-4" />
-            <h2 className="text-xs font-semibold uppercase tracking-widest opacity-70">Últimos Insights</h2>
+            <History className="h-3.5 w-3.5 text-primary" />
+            <h2 className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-80">Histórico de Consultas</h2>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {history.data.map((item: any) => (
-              <Card 
-                key={item.id} 
-                className="p-4 border-border/40 bg-card/40 cursor-pointer hover:bg-card/60 transition-colors"
-                onClick={() => handleAsk(item.query_text)}
-              >
-                <div className="space-y-2">
-                   <Badge variant="secondary" className="text-[9px] uppercase font-bold tracking-tighter">
-                      {item.selected_profile}
-                   </Badge>
-                   <p className="line-clamp-2 text-sm font-medium italic">"{item.query_text}"</p>
-                </div>
-              </Card>
-            ))}
+          <div className="rounded-lg border border-border/40 bg-card/20 overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border/40 bg-muted/20 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Perfil</th>
+                  <th className="px-4 py-3 font-medium">Consulta</th>
+                  <th className="px-4 py-3 font-medium text-right">Realizada em</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {history.data.map((item: any) => (
+                  <tr 
+                    key={item.id} 
+                    className="group cursor-pointer hover:bg-primary/5 transition-colors"
+                    onClick={() => handleHistoryClick(item)}
+                  >
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-[9px] uppercase border-primary/30 text-primary/80">
+                        {item.selected_profile}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-foreground/80 truncate max-w-[300px] md:max-w-[500px]">
+                      {item.query_text}
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground text-[10px] font-mono">
+                      {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}
 
-      {/* 4. Escolha de Perfil e Consultoria */}
-      <hr className="border-border/5" />
-      <ProfileLens profile={profile} onChange={setProfile} />
-      <ConsultoriaInteligente
-        profile={profile}
-        isLoading={brain.isPending}
-        onSubmit={handleAsk}
-      />
+      {/* 5. Exibição da Resposta */}
+      <div id="response-area" className="scroll-mt-10">
+        <AnimatePresence mode="wait">
+          {lastQuestion && (
+            <motion.div
+              key={lastQuestion}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <ResponseDisplay
+                isLoading={brain.isPending}
+                error={brain.error as Error | null}
+                answer={cachedAnswer || brain.data?.answer || null}
+                question={lastQuestion}
+              />
+              {expirationInfo.expired && cachedAnswer && (
+                <div className="mt-3 flex items-center gap-2 px-4 py-3 rounded-md bg-caution/10 border border-caution/20 text-caution text-[11px] font-mono uppercase tracking-wider">
+                  <span className="shrink-0">⚠️</span>
+                  <span>
+                    Análise realizada em <strong>{expirationInfo.date}</strong>. 
+                    O cenário macro pode ter sofrido alterações significativas desde então.
+                  </span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* 5. Exibição da Resposta da IA */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={lastQuestion ?? "idle"}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <ResponseDisplay
-            isLoading={brain.isPending}
-            error={brain.error as Error | null}
-            answer={brain.data?.answer ?? null}
-            question={lastQuestion}
-          />
-        </motion.div>
-      </AnimatePresence>
-
+      {/* 6. Oportunidade Estratégica */}
       <MonetizationBanner />
     </main>
   );
 
-  // --- RENDERIZAÇÃO FINAL ---
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
-        {/* Passamos uma flag para o Header mostrar o botão de login na vitrine */}
         <CronosHeader showLoginButton={true} /> 
         <MainContent />
         <FooterFeed />
