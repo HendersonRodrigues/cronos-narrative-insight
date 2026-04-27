@@ -55,7 +55,6 @@ const Index = () => {
 
   const history = useInsightHistory(user?.id);
 
-  // Manipula clique no histórico
   const handleHistoryClick = (item: any) => {
     const formattedDate = new Date(item.created_at).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -74,25 +73,25 @@ const Index = () => {
       date: formattedDate 
     });
 
-    // Scroll suave para a resposta
     setTimeout(() => {
       document.getElementById("response-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   };
 
- function handleAsk(message: string) {
+  function handleAsk(message: string) {
     if (!message.trim() || brain.isPending) return;
     
     setLastQuestion(message);
     setCachedAnswer(null);
     setExpirationInfo({ expired: false, date: null });
     
-    // O segredo está aqui: passar exatamente o que a Edge Function espera
+    // SINCRONIZADO: Passando userId e interests explicitamente para o Hook
     brain.mutate(
       { 
-        message,           // O hook useCronosBrain mapeia isso para 'prompt'
-        profile,           // Perfil selecionado
-        userId: user?.id   // O ID do usuário logado
+        message, 
+        profile, 
+        userId: user?.id,
+        interests: profileData?.interests || [] // Contexto estratégico vindo do perfil
       },
       {
         onSuccess: () => {
@@ -120,15 +119,10 @@ const Index = () => {
 
   const MainContent = () => (
     <main className="container max-w-[1200px] mx-auto flex-1 px-4 py-8 space-y-10">
-      {/* 1. Insight do Dia */}
       <DailyBriefing />
-      
-      {/* 2. Painel de Mercado */}
       <MarketDashboard />
-      
       <hr className="border-border/5" />
 
-      {/* 3. Entrada: Consultoria Inteligente (Pergunta Livre + Fixas) */}
       <section className="space-y-6">
         <ProfileLens profile={profile} onChange={setProfile} />
         <ConsultoriaInteligente
@@ -138,7 +132,6 @@ const Index = () => {
         />
       </section>
 
-      {/* 4. Saída: Resposta da IA (ResponseDisplay) */}
       <div id="response-area" className="scroll-mt-10 min-h-[100px]">
         <AnimatePresence mode="wait">
           {lastQuestion && (
@@ -167,7 +160,6 @@ const Index = () => {
         </AnimatePresence>
       </div>
 
-      {/* 5. Arquivo: Histórico de Consultas (Tabela) */}
       {user && history.data && history.data.length > 0 && (
         <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
           <div className="flex items-center gap-2 text-muted-foreground border-t border-border/10 pt-6">
@@ -209,7 +201,6 @@ const Index = () => {
         </section>
       )}
 
-      {/* 6. Oportunidade Estratégica */}
       <MonetizationBanner />
     </main>
   );
