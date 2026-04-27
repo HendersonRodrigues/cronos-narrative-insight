@@ -182,7 +182,7 @@ STRUCTURE:
 - Intro Paragraph + Beginner Tip.
 - [DETALHES]
 - Body: Narrative connecting current data to historical cycles (rhymes) + 1 Comparative Table.
-- Strategy: Explain the value of non-correlated assets (ativos descorrelacionados) to instigate study.
+- Strategy: Explain the value of non-correlated assets (ativo descorrelacionado) to instigate study.
 - Tactical Roadmap: 3 study topics to end the message.
 
 Respond in PORTUGUESE. Ensure all Markdown tags are closed.`;
