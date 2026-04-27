@@ -7,6 +7,7 @@ import type { CronosBrainResponse, ProfileType } from "@/types/cronos";
 interface BrainInput {
   message: string;
   profile: ProfileType;
+  userId?: string; // Adicionado
 }
 
 const FRIENDLY_FALLBACK =
@@ -23,28 +24,26 @@ async function readEdgeErrorBody(error: unknown): Promise<string | null> {
   }
 }
 
-async function invokeBrain({ message, profile }: BrainInput): Promise<CronosBrainResponse> {
+async function invokeBrain({ message, profile, userId }: BrainInput): Promise<CronosBrainResponse> {
   if (!supabase) throw new Error("Supabase não configurado");
 
   const userProfile = profile ?? "moderado";
 
   try {
-    // Header Authorization: Bearer <publishable key> enviado explicitamente —
-    // sem ele a Edge Function retorna 401 e o front quebra ao ler o resultado.
-    // Altere apenas o bloco do invoke
-  const { data, error } = await supabase.functions.invoke<CronosBrainResponse>(
-    "cronos-brain",
-    {
-      body: { 
-        prompt: message, // ALTERADO: De 'message' para 'prompt'
-        userProfile: userProfile // Mantendo o perfil como a função espera
+    const { data, error } = await supabase.functions.invoke<CronosBrainResponse>(
+      "cronos-brain",
+      {
+        body: { 
+          prompt: message,
+          userProfile: userProfile,
+          userId: userId // ADICIONADO: Agora o ID viaja até a Edge Function
+        },
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
       },
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        apikey: SUPABASE_ANON_KEY,
-      },
-    },
-  );
+    );
 
     if (error) {
       const raw = await readEdgeErrorBody(error);
