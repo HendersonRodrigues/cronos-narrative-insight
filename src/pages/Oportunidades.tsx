@@ -29,22 +29,31 @@ export default function Oportunidades() {
   }
 
   return (
-    <main className="flex-1">
-      {/* Hero - Reduzido para maior densidade de informação */}
-      <section className="relative overflow-hidden border-b border-border/40">
-        <div className="absolute inset-0 bg-grid opacity-[0.04] pointer-events-none" />
-        
-        {/* Ajustado: -top-40 (subiu mais) e h-64 (menor) para acompanhar a seção menor */}
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-64 w-[640px] rounded-full bg-accent/10 blur-3xl pointer-events-none" />
-    
-        {/* Ajustado: py-8 md:py-12 (antes era 16/24) e space-y-4 (antes era 6) */}
-        <div className="container max-w-[1200px] mx-auto px-4 py-8 md:py-12 relative space-y-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
-              Curadoria Proprietária
-            </span>
-          </div>
+   <main className="flex-1">
+
+        {/* Hero */}
+
+        <section className="relative overflow-hidden border-b border-border/40">
+
+          <div className="absolute inset-0 bg-grid opacity-[0.04] pointer-events-none" />
+
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-72 w-[640px] rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+
+
+
+          <div className="container max-w-[1200px] mx-auto px-4 py-16 md:py-24 relative space-y-6 text-center">
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1">
+
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+
+              <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
+
+                Curadoria Proprietária
+
+              </span>
+
+            </div>
           
       
             <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight text-foreground leading-[1.05] max-w-3xl mx-auto">
