@@ -80,15 +80,20 @@ const Index = () => {
     }, 100);
   };
 
-  function handleAsk(message: string) {
+ function handleAsk(message: string) {
     if (!message.trim() || brain.isPending) return;
     
     setLastQuestion(message);
     setCachedAnswer(null);
     setExpirationInfo({ expired: false, date: null });
     
+    // O segredo está aqui: passar exatamente o que a Edge Function espera
     brain.mutate(
-      { message, profile },
+      { 
+        message,           // O hook useCronosBrain mapeia isso para 'prompt'
+        profile,           // Perfil selecionado
+        userId: user?.id   // O ID do usuário logado
+      },
       {
         onSuccess: () => {
           if (user) {
