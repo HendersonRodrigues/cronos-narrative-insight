@@ -244,19 +244,35 @@ export default function SmartPasteManager() {
     }
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "save-admin-insight",
-        {
-          body: {
-            target,
-            mode,
-            replace_id: mode === "update" ? replaceId : undefined,
-            publish,
-            insight: result,
-          },
+      const { data: sess } = await supabase.auth.getSession();
+      const accessToken = sess?.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada. Faça login novamente.");
+
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-admin-insight`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         },
-      );
-      if (error) throw error;
+        body: JSON.stringify({
+          target,
+          mode,
+          replace_id: mode === "update" ? replaceId : undefined,
+          publish,
+          insight: result,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          (data as { error?: string; detail?: string })?.error ||
+          (data as { error?: string; detail?: string })?.detail ||
+          `Edge function ${res.status}`;
+        throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
       const ok = (data as { ok?: boolean })?.ok;
       if (!ok) throw new Error("Resposta inesperada do servidor.");
       toast({
