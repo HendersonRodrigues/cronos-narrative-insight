@@ -248,30 +248,33 @@ export default function SmartPasteManager() {
       const accessToken = sess?.session?.access_token;
       if (!accessToken) throw new Error("Sessão expirada. Faça login novamente.");
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-admin-insight`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+      const { data, error } = await supabase.functions.invoke(
+        "save-admin-insight",
+        {
+          body: {
+            target,
+            mode,
+            replace_id: mode === "update" ? replaceId : undefined,
+            publish,
+            insight: result,
+          },
+          headers: { Authorization: `Bearer ${accessToken}` },
         },
-        body: JSON.stringify({
-          target,
-          mode,
-          replace_id: mode === "update" ? replaceId : undefined,
-          publish,
-          insight: result,
-        }),
-      });
+      );
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg =
-          (data as { error?: string; detail?: string })?.error ||
-          (data as { error?: string; detail?: string })?.detail ||
-          `Edge function ${res.status}`;
-        throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      if (error) {
+        // Tenta extrair mensagem detalhada do corpo da resposta (FunctionsHttpError)
+        let detail = error.message;
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            detail = body?.error || body?.detail || detail;
+          }
+        } catch {
+          /* ignore */
+        }
+        throw new Error(detail);
       }
       const ok = (data as { ok?: boolean })?.ok;
       if (!ok) throw new Error("Resposta inesperada do servidor.");
