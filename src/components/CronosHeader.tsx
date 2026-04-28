@@ -51,13 +51,13 @@ export default function CronosHeader({ showLoginButton = true }: CronosHeaderPro
               <>
                 <button
                   className="text-[10px] font-semibold text-gray-400 hover:text-white transition-colors uppercase tracking-wider"
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/auth?redirect=/')}
                 >
                   Entrar
                 </button>
                 <Button
                   className="bg-cyan-500 hover:bg-cyan-400 text-[#020817] font-bold text-[10px] uppercase tracking-wider px-4 h-8 rounded-sm transition-all active:scale-95"
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/auth?mode=signup&redirect=/')}
                 >
                   Criar Conta
                 </Button>

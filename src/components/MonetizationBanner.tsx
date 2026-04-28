@@ -1,10 +1,22 @@
 import { ArrowUpRight, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function MonetizationBanner() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!user) {
+      e.preventDefault();
+      navigate("/auth?redirect=/oportunidades");
+    }
+  };
+
   return (
     <Link
       to="/oportunidades"
+      onClick={handleClick}
       className="group relative block overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 transition-all hover:border-primary/60 hover:glow-primary"
     >
       <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl pointer-events-none" />

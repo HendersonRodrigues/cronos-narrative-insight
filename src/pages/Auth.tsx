@@ -19,6 +19,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
 
+  // Obter a rota de redirecionamento (padrão: /)
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +29,9 @@ export default function Auth() {
     try {
       await signIn(email, password);
       toast.success("Login realizado com sucesso!");
-      navigate("/oportunidades");
+      navigate(redirectTo);
     } catch (error: any) {
       toast.error(error?.message || "Falha ao fazer login");
-    } finally {
-
       setLoading(false);
     }
   };
@@ -70,6 +70,8 @@ export default function Auth() {
     setLoading(true);
     try {
       await signInWithGoogle();
+      // Após o callback do Google, a navegação é feita automaticamente
+      // pois o usuário será redirecionado e o context atualizará
     } catch (error: any) {
       toast.error(error?.message || "Falha ao fazer login com Google");
       setLoading(false);
