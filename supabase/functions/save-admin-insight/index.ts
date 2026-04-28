@@ -161,7 +161,6 @@ serve(async (req) => {
         details_content: insight.details_content ?? null,
         deep_analysis: insight.deep_analysis ?? null,
         assets_linked: insight.assets_linked ?? [],
-        author_id: userId,
       };
 
       const { data: inserted, error: insertErr } = await admin
@@ -210,7 +209,6 @@ serve(async (req) => {
         details_content: insight.details_content ?? null,
         deep_analysis: insight.deep_analysis ?? null,
         assets_linked: insight.assets_linked ?? [],
-        author_id: userId,
       };
 
       const { data: inserted, error: insertErr } = await admin
