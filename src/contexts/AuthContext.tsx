@@ -47,7 +47,7 @@ const fetchProfileData = async (userId: string) => {
       
       // Mapeamos para ProfileDataRow. 
       // Como 'email' e 'created_at' estão na interface mas não no select, eles serão null, o que não quebra o código.
-      setProfileData((data as ProfileDataRow) ?? null);
+      setProfileData((data as unknown as ProfileDataRow) ?? null);
     } catch (err) {
       console.warn(
         "[Auth] Erro ao carregar perfil:",
