@@ -20,9 +20,12 @@ export interface ProfileDataRow {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  email: string | null;
-  updated_at: string | null;
-  created_at: string | null;
+  email?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+  role?: string | null;
+  risk_profile?: string | null;
+  interests?: string[] | null;
 }
 
 // ---------------------------------------------------------------------------
