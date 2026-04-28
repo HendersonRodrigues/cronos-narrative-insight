@@ -49,13 +49,13 @@ export default function CronosHeader({ showLoginButton = true }: CronosHeaderPro
           <div className="flex items-center gap-3">
             {!user ? (
               <>
-                <button 
+                <button
                   className="text-[10px] font-semibold text-gray-400 hover:text-white transition-colors uppercase tracking-wider"
                   onClick={() => navigate('/auth')}
                 >
                   Entrar
                 </button>
-                <Button 
+                <Button
                   className="bg-cyan-500 hover:bg-cyan-400 text-[#020817] font-bold text-[10px] uppercase tracking-wider px-4 h-8 rounded-sm transition-all active:scale-95"
                   onClick={() => navigate('/auth')}
                 >
@@ -63,24 +63,29 @@ export default function CronosHeader({ showLoginButton = true }: CronosHeaderPro
                 </Button>
               </>
             ) : (
-              <div className="flex items-center gap-1.5">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-gray-400 hover:text-white"
                   onClick={() => navigate('/profile')}
+                  title="Perfil"
                 >
                   <User className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-gray-400 hover:text-red-400"
-                  onClick={() => signOut()}
+                  onClick={async () => {
+                    await signOut();
+                    navigate('/');
+                  }}
+                  title="Sair"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
-              </div>
+              </>
             )}
           </div>
         </div>
