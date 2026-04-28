@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase"; // Adicione esta importação
 import { Sparkles, Briefcase } from "lucide-react";
 import OpportunityCard from "@/components/OpportunityCard";
 import OpportunityCardSkeleton from "@/components/OpportunityCardSkeleton";
 import EmptyState from "@/components/EmptyState";
 import LeadCaptureModal from "@/components/LeadCaptureModal";
 import FooterFeed from "@/components/FooterFeed";
-import { OPPORTUNITIES, type Opportunity } from "@/data/opportunities";
 
 export default function Oportunidades() {
   const [selected, setSelected] = useState<Opportunity | null>(null);
@@ -16,12 +16,32 @@ export default function Oportunidades() {
   // Hydration step — keeps the perception of a real network round-trip
   // so skeletons remain meaningful even with static data.
   useEffect(() => {
-    const t = window.setTimeout(() => {
-      setItems(OPPORTUNITIES);
+  const fetchOpportunities = async () => {
+    try {
+      setLoading(true);
+      const { data: opportunities, error } = await supabase
+        .from("investment_opportunities")
+        .select("*")
+        .eq("is_active", true) // Só exibe oportunidades ativas
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setItems(opportunities || []);
+    } catch (err) {
+      console.error("Erro ao carregar oportunidades:", err);
+      setItems([]); // Fallback para dados estáticos se houver erro
+    } finally {
       setLoading(false);
-    }, 250);
-    return () => window.clearTimeout(t);
-  }, []);
+    }
+  };
+
+  // Simula delay para manter o skeleton (opcional)
+  const timer = setTimeout(() => {
+    fetchOpportunities();
+  }, 250);
+
+  return () => clearTimeout(timer);
+}, []);
 
   function handleInterest(op: Opportunity) {
     setSelected(op);
