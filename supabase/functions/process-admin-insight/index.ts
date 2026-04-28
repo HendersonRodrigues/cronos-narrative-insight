@@ -28,7 +28,8 @@ const corsHeaders = {
 };
 
 const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
-const DEFAULT_MODEL = "mistral-large-2512";
+// "mistral-large-latest" é o alias estável; o usuário pode forçar via body.model
+const DEFAULT_MODEL = "mistral-large-latest";
 const MIN_TEXT_LEN = 80;
 const MAX_TEXT_LEN = 12_000;
 
@@ -127,7 +128,6 @@ const TOOL_SCHEMA = {
         },
       },
       required: ["summary", "details_content", "deep_analysis", "assets_linked"],
-      additionalProperties: false,
     },
   },
 } as const;
@@ -254,29 +254,37 @@ serve(async (req) => {
       body?.target === "briefing" ? "briefing" : "opportunity";
 
     // 4) Chamada direta à Mistral AI com tool calling
+    // Mistral usa tool_choice: "any" para forçar uso de uma tool
+    const requestBody = {
+      model,
+      messages: [
+        { role: "system", content: buildSystemPrompt(target) },
+        { role: "user", content: rawText },
+      ],
+      tools: [TOOL_SCHEMA],
+      tool_choice: "any",
+      temperature: 0.3,
+    };
+
+    console.log("[process-admin-insight] calling Mistral", {
+      model,
+      target,
+      textLen: rawText.length,
+    });
+
     const aiRes = await fetch(MISTRAL_API_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${MISTRAL_API_KEY}`,
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: buildSystemPrompt(target) },
-          { role: "user", content: rawText },
-        ],
-        tools: [TOOL_SCHEMA],
-        tool_choice: {
-          type: "function",
-          function: { name: "extract_admin_insight" },
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!aiRes.ok) {
       const errText = await aiRes.text().catch(() => "");
-      console.error("Mistral API error", aiRes.status, errText);
+      console.error("Mistral API error", aiRes.status, errText.slice(0, 500));
       if (aiRes.status === 401 || aiRes.status === 403) {
         return jsonResponse(
           { error: "MISTRAL_API_KEY inválida ou sem permissão." },
@@ -289,16 +297,28 @@ serve(async (req) => {
           429,
         );
       }
-      return jsonResponse({ error: "Falha no provedor de IA (Mistral)." }, 502);
+      return jsonResponse(
+        {
+          error: `Falha no provedor de IA (Mistral ${aiRes.status}).`,
+          detail: errText.slice(0, 300),
+        },
+        502,
+      );
     }
 
     const data = await aiRes.json();
     const extracted = parseToolCall(data);
 
     if (!extracted || !extracted.summary) {
-      console.error("AI did not return tool call:", JSON.stringify(data));
+      console.error(
+        "AI did not return tool call:",
+        JSON.stringify(data).slice(0, 800),
+      );
       return jsonResponse(
-        { error: "A IA não retornou conteúdo estruturado. Tente reformular o texto." },
+        {
+          error: "A IA não retornou conteúdo estruturado. Tente reformular o texto.",
+          detail: data?.choices?.[0]?.message?.content ?? null,
+        },
         502,
       );
     }
