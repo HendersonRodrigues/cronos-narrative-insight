@@ -363,34 +363,67 @@ function LoadingState({ label }: { label: string }) {
 // ---------------------------------------------------------------------------
 // QuestionsManager — CRUD de app_questions
 // ---------------------------------------------------------------------------
-function QuestionsManager() {
-  const { data, loading, error, add, toggle, remove } = useAdminQuestions();
+function OpportunitiesManager() {
+  const { data, loading, error, add, update, remove, toggle } = useAdminOpportunities();
   const { toast } = useToast();
-  const [text, setText] = useState("");
-  const [category, setCategory] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",           // Usa 'name' (agora NOT NULL)
+    description: "",
+    returnRate: "",
+    riskLevel: "medio" as RiskLevel,
+  });
 
-  const handleAdd = async (e: React.FormEvent) => {
+  // Preenche o formulário ao editar
+  useEffect(() => {
+    if (editingId) {
+      const opportunity = data.find((opp) => opp.id === editingId);
+      if (opportunity) {
+        setFormData({
+          name: opportunity.name || opportunity.title || "", // Fallback para 'title'
+          description: opportunity.description || "",
+          returnRate: opportunity.return_rate ? String(opportunity.return_rate * 100) : "",
+          riskLevel: opportunity.risk_level || "medio",
+        });
+      }
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        returnRate: "",
+        riskLevel: "medio",
+      });
+    }
+  }, [editingId, data]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!formData.name.trim()) {
+      toast({ title: "Erro", description: "O nome é obrigatório.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await add({
-        text: text.trim(),
-        category: category.trim() || null,
+      const payload = {
+        name: formData.name.trim(),  // Usa 'name' (NOT NULL)
+        description: formData.description.trim() || null,
+        return_rate: formData.returnRate ? Number(formData.returnRate) / 100 : null,
+        risk_level: formData.riskLevel,
         is_active: true,
-        order_index: 0,
-      });
-      setText("");
-      setCategory("");
-      toast({ title: "Pergunta adicionada com sucesso." });
+      };
+
+      if (editingId) {
+        await update(editingId, payload);
+        toast({ title: "Oportunidade atualizada com sucesso." });
+        setEditingId(null);
+      } else {
+        await add(payload);
+        toast({ title: "Oportunidade criada com sucesso." });
+      }
+      setFormData({ name: "", description: "", returnRate: "", riskLevel: "medio" });
     } catch (e) {
-      toast({
-        title: "Erro ao adicionar",
-        description: (e as Error).message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
