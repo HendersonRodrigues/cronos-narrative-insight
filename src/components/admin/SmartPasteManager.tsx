@@ -188,18 +188,40 @@ export default function SmartPasteManager() {
     setProcessing(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "process-admin-insight",
-        { body: { text: rawText.trim(), target } },
-      );
-      if (error) throw error;
-      const extracted = (data as { extracted?: ExtractedInsight })?.extracted;
+      // Usamos fetch direto para conseguir ler o body de erro (4xx/5xx).
+      // supabase.functions.invoke esconde o body quando status != 2xx.
+      const { data: sess } = await supabase.auth.getSession();
+      const accessToken = sess?.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada. Faça login novamente.");
+
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-admin-insight`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({ text: rawText.trim(), target }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          payload?.error ||
+          payload?.detail ||
+          `Edge function ${res.status}`;
+        throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      }
+
+      const extracted = (payload as { extracted?: ExtractedInsight })?.extracted;
       if (!extracted?.summary) {
         throw new Error("Resposta da IA sem conteúdo estruturado.");
       }
       setResult(extracted);
       toast({ title: "Insight processado." });
     } catch (e) {
+      console.error("[SmartPaste] handleProcess error:", e);
       toast({
         title: "Falha ao processar",
         description: (e as Error).message ?? "Erro desconhecido.",
