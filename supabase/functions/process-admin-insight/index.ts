@@ -27,8 +27,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-2.5-flash"; // leve e rápido p/ extração
+const AI_GATEWAY_URL = "https://api.mistral.ai/v1/chat/completions";
+const DEFAULT_MODEL = "mistral-large-2512"; // leve e rápido p/ extração
 const MIN_TEXT_LEN = 80;
 const MAX_TEXT_LEN = 12_000;
 
