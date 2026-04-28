@@ -27,8 +27,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const AI_GATEWAY_URL = "https://api.mistral.ai/v1/chat/completions";
-const DEFAULT_MODEL = "mistral-large-2512"; // leve e rápido p/ extração
+const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
+const DEFAULT_MODEL = "mistral-large-2512";
 const MIN_TEXT_LEN = 80;
 const MAX_TEXT_LEN = 12_000;
 
@@ -202,7 +202,7 @@ serve(async (req) => {
 
     const SUPABASE_URL = getRequiredEnv("SUPABASE_URL");
     const SERVICE_ROLE = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const LOVABLE_API_KEY = getRequiredEnv("LOVABLE_API_KEY");
+    const MISTRAL_API_KEY = getRequiredEnv("MISTRAL_API_KEY");
 
     // Cliente com service role para validar token + checar role
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
@@ -253,11 +253,11 @@ serve(async (req) => {
     const target: "briefing" | "opportunity" =
       body?.target === "briefing" ? "briefing" : "opportunity";
 
-    // 4) Chamada ao Lovable AI Gateway com tool calling
-    const aiRes = await fetch(AI_GATEWAY_URL, {
+    // 4) Chamada direta à Mistral AI com tool calling
+    const aiRes = await fetch(MISTRAL_API_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${MISTRAL_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -276,20 +276,20 @@ serve(async (req) => {
 
     if (!aiRes.ok) {
       const errText = await aiRes.text().catch(() => "");
-      console.error("AI gateway error", aiRes.status, errText);
+      console.error("Mistral API error", aiRes.status, errText);
+      if (aiRes.status === 401 || aiRes.status === 403) {
+        return jsonResponse(
+          { error: "MISTRAL_API_KEY inválida ou sem permissão." },
+          502,
+        );
+      }
       if (aiRes.status === 429) {
         return jsonResponse(
-          { error: "Limite de requisições da IA atingido. Tente novamente em instantes." },
+          { error: "Limite de requisições da Mistral atingido. Tente novamente em instantes." },
           429,
         );
       }
-      if (aiRes.status === 402) {
-        return jsonResponse(
-          { error: "Créditos da IA esgotados. Adicione fundos no workspace Lovable." },
-          402,
-        );
-      }
-      return jsonResponse({ error: "Falha no provedor de IA." }, 502);
+      return jsonResponse({ error: "Falha no provedor de IA (Mistral)." }, 502);
     }
 
     const data = await aiRes.json();
