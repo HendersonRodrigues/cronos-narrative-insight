@@ -550,39 +550,76 @@ function QuestionsManager() {
 }
 
 // ---------------------------------------------------------------------------
-// OpportunitiesManager — CRUD de investment_opportunities
+// OpportunitiesManager — CRUD completo de investment_opportunities
 // ---------------------------------------------------------------------------
 function OpportunitiesManager() {
-  const { data, loading, error, add, toggle } = useAdminOpportunities();
+  const { data, loading, error, add, update, remove, toggle } = useAdminOpportunities();
   const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [returnRate, setReturnRate] = useState("");
-  const [riskLevel, setRiskLevel] = useState<RiskLevel>("medio");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    returnRate: "",
+    riskLevel: "medio" as RiskLevel,
+  });
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleAdd = async (e: React.FormEvent) => {
+  // Preenche o formulário ao editar
+  useEffect(() => {
+    if (editingId) {
+      const opportunity = data.find((opp) => opp.id === editingId);
+      if (opportunity) {
+        setFormData({
+          name: opportunity.name,
+          description: opportunity.description || "",
+          returnRate: opportunity.return_rate ? String(opportunity.return_rate * 100) : "",
+          riskLevel: opportunity.risk_level,
+        });
+      }
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        returnRate: "",
+        riskLevel: "medio",
+      });
+    }
+  }, [editingId, data]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!formData.name.trim()) return;
+
     setSubmitting(true);
     try {
-      await add({
-        name: name.trim(),
-        description: description.trim() || null,
-        return_rate: returnRate ? Number(returnRate) / 100 : null,
-        risk_level: riskLevel,
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        return_rate: formData.returnRate ? Number(formData.returnRate) / 100 : null,
+        risk_level: formData.riskLevel,
         is_active: true,
-        category: null,
-        min_investment: null,
+      };
+
+      if (editingId) {
+        await update(editingId, payload);
+        toast({ title: "Oportunidade atualizada com sucesso." });
+        setEditingId(null);
+      } else {
+        await add(payload);
+        toast({ title: "Oportunidade criada com sucesso." });
+      }
+
+      // Limpa o formulário
+      setFormData({
+        name: "",
+        description: "",
+        returnRate: "",
+        riskLevel: "medio",
       });
-      setName("");
-      setDescription("");
-      setReturnRate("");
-      setRiskLevel("medio");
-      toast({ title: "Oportunidade criada com sucesso." });
     } catch (e) {
       toast({
-        title: "Erro ao criar oportunidade",
+        title: editingId ? "Erro ao atualizar" : "Erro ao criar oportunidade",
         description: (e as Error).message,
         variant: "destructive",
       });
@@ -591,22 +628,39 @@ function OpportunitiesManager() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await remove(id);
+      toast({ title: "Oportunidade removida com sucesso." });
+    } catch (e) {
+      toast({
+        title: "Erro ao remover",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <Card className="border-border/60">
       <CardHeader>
         <CardTitle>Oportunidades de investimento</CardTitle>
         <CardDescription>
-          Catálogo exibido na página de diversificação estratégica.
+          Gerencie as oportunidades exibidas na página de diversificação.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleAdd} className="grid gap-3 md:grid-cols-2">
+        {/* Formulário (cria/edita) */}
+        <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="o-name">Nome</Label>
             <Input
               id="o-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex.: Consórcio Estruturado"
               required
             />
@@ -617,8 +671,8 @@ function OpportunitiesManager() {
               id="o-rate"
               type="number"
               step="0.01"
-              value={returnRate}
-              onChange={(e) => setReturnRate(e.target.value)}
+              value={formData.returnRate}
+              onChange={(e) => setFormData({ ...formData, returnRate: e.target.value })}
               placeholder="Ex.: 18"
             />
           </div>
@@ -626,8 +680,8 @@ function OpportunitiesManager() {
             <Label htmlFor="o-desc">Descrição</Label>
             <Textarea
               id="o-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Resumo executivo da oportunidade..."
               rows={3}
             />
@@ -635,8 +689,8 @@ function OpportunitiesManager() {
           <div className="space-y-1.5">
             <Label htmlFor="o-risk">Nível de risco</Label>
             <Select
-              value={riskLevel}
-              onValueChange={(v) => setRiskLevel(v as RiskLevel)}
+              value={formData.riskLevel}
+              onValueChange={(v) => setFormData({ ...formData, riskLevel: v as RiskLevel })}
             >
               <SelectTrigger id="o-risk">
                 <SelectValue />
@@ -655,13 +709,39 @@ function OpportunitiesManager() {
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : editingId ? (
+              <>
+                <Save className="h-4 w-4" />
+                Salvar alterações
+              </>
             ) : (
-              <Plus className="h-4 w-4" />
+              <>
+                <Plus className="h-4 w-4" />
+                Adicionar oportunidade
+              </>
             )}
-            Adicionar oportunidade
           </Button>
+          {editingId && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setEditingId(null);
+                setFormData({
+                  name: "",
+                  description: "",
+                  returnRate: "",
+                  riskLevel: "medio",
+                });
+              }}
+              className="md:col-span-2 w-fit"
+            >
+              Cancelar edição
+            </Button>
+          )}
         </form>
 
+        {/* Tabela de oportunidades */}
         {loading ? (
           <LoadingState label="Carregando oportunidades..." />
         ) : error ? (
@@ -672,7 +752,7 @@ function OpportunitiesManager() {
           <EmptyState
             icon={<Briefcase className="h-5 w-5" />}
             title="Nenhuma oportunidade cadastrada"
-            description="Adicione a primeira oportunidade no formulário acima para que apareça em /oportunidades."
+            description="Adicione a primeira oportunidade no formulário acima."
           />
         ) : (
           <Table>
@@ -681,7 +761,8 @@ function OpportunitiesManager() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Risco</TableHead>
                 <TableHead>Retorno</TableHead>
-                <TableHead className="w-[120px]">Ativa</TableHead>
+                <TableHead className="w-[100px]">Ativa</TableHead>
+                <TableHead className="w-[160px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -694,15 +775,60 @@ function OpportunitiesManager() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {row.return_rate != null
-                      ? `${(row.return_rate * 100).toFixed(2)}%`
-                      : "—"}
+                    {row.return_rate != null ? `${(row.return_rate * 100).toFixed(2)}%` : "—"}
                   </TableCell>
                   <TableCell>
                     <Switch
                       checked={row.is_active}
                       onCheckedChange={(v) => toggle(row.id, v)}
                     />
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingId(row.id)}
+                      className="h-8 gap-1"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                      Editar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={deletingId === row.id}
+                          className="h-8 gap-1"
+                        >
+                          {deletingId === row.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Deletar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover a oportunidade{" "}
+                            <span className="font-medium">{row.name}</span>?
+                            Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(row.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Confirmar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
