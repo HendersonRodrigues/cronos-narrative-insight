@@ -36,13 +36,20 @@ export function useAdminOpportunities() {
   }, []);
 
   // Cria uma nova oportunidade
-  const add = async (opportunity: Omit<AdminOpportunity, "id" | "is_active"> & { is_active?: boolean }) => {
-    try {
-      const { data: newOpportunity, error } = await supabase
-        .from("investment_opportunities")
-        .insert([{ ...opportunity, is_active: opportunity.is_active ?? true }])
-        .select()
-        .single();
+  const add = async (opportunity: Omit<AdminOpportunity, "id">) => {
+  try {
+    const { data: newOpportunity, error } = await supabase
+      .from("investment_opportunities")
+      .insert([{
+        name: opportunity.name,  // Usa 'name' (agora NOT NULL)
+        title: opportunity.name, // Mantém 'title' sincronizado (opcional)
+        description: opportunity.description,
+        return_rate: opportunity.return_rate,
+        risk_level: opportunity.risk_level,
+        is_active: opportunity.is_active ?? true,
+      }])
+      .select()
+      .single();
 
       if (error) throw error;
       setData([newOpportunity, ...data]);
