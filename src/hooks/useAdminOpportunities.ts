@@ -41,8 +41,7 @@ export function useAdminOpportunities() {
     const { data: newOpportunity, error } = await supabase
       .from("investment_opportunities")
       .insert([{
-        name: opportunity.name,  // Usa 'name' (agora NOT NULL)
-        title: opportunity.name, // Mantém 'title' sincronizado (opcional)
+        name: opportunity.name,
         description: opportunity.description,
         return_rate: opportunity.return_rate,
         risk_level: opportunity.risk_level,
