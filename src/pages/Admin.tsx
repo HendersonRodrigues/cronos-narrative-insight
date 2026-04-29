@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Edit2 } from "lucide-react"; // Adicione junto às outras imports de ícones
+import { Save, CreditCard as Edit2 } from "lucide-react"; // Adicione junto às outras imports de ícones
 import {
   Select,
   SelectContent,
@@ -43,19 +43,7 @@ import {
   useAdminOpportunities,
 } from "@/hooks/useAdminContent";
 import type { RiskLevel } from "@/types/database";
-import {
-  ArrowLeft,
-  MessageSquare,
-  TrendingUp,
-  Users,
-  Loader2,
-  Sparkles,
-  HelpCircle,
-  Briefcase,
-  Plus,
-  Trash2,
-  Wand2,
-} from "lucide-react";
+import { ArrowLeft, MessageSquare, TrendingUp, Users, Loader as Loader2, Sparkles, CircleHelp as HelpCircle, Briefcase, Plus, Trash2, Wand as Wand2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -602,20 +590,14 @@ function OpportunitiesManager() {
       return;
     }
 
-    setSubmitting(true); // Agora 'submitting' existe
+    setSubmitting(true);
     try {
       const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         return_rate: formData.returnRate ? Number(formData.returnRate) / 100 : null,
         risk_level: formData.riskLevel,
-        category: null,
-        min_investment: null,
         is_active: true,
-        // Garante que a oportunidade apareça imediatamente em /oportunidades
-        // (a página filtra por status='published' AND is_archived=false).
-        status: "published" as const,
-        is_archived: false,
       };
 
       if (editingId) {
