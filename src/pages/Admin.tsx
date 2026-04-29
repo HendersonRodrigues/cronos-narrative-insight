@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, CreditCard as Edit2 } from "lucide-react"; // Adicione junto às outras imports de ícones
+import { Save, CreditCard as Edit2 } from "lucide-react"; 
 import {
   Select,
   SelectContent,
@@ -155,7 +155,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Cards de Métricas */}
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
           title="Usuários cadastrados"
@@ -192,6 +191,7 @@ export default function Admin() {
         <TabsContent value="leads">
           <Card className="border-border/60">
             <CardHeader>
+              <CardTitle>Leads recentes</CardTitle>
               <CardTitle>Leads recentes</CardTitle>
               <CardDescription>
                 Últimos 15 interesses capturados nas oportunidades.
@@ -348,9 +348,6 @@ function LoadingState({ label }: { label: string }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// QuestionsManager — CRUD de app_questions
-// ---------------------------------------------------------------------------
 function QuestionsManager() {
   const { data, loading, error, add, toggle, remove } = useAdminQuestions();
   const { toast } = useToast();
@@ -539,27 +536,23 @@ function QuestionsManager() {
   );
 }
 
-
-// ---------------------------------------------------------------------------
-// OpportunitiesManager — CRUD completo de investment_opportunities
-// ---------------------------------------------------------------------------
 function OpportunitiesManager() {
   const { data, loading, error, add, update, remove, toggle } = useAdminOpportunities();
   const { toast } = useToast();
   
-  // ESTADOS ADICIONADOS PARA CORREÇÃO
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false); // Corrigido: definido o estado que faltava
-  const [deletingId, setDeletingId] = useState<string | null>(null); // Corrigido: definido o estado que faltava
+  const [submitting, setSubmitting] = useState(false); 
+  const [deletingId, setDeletingId] = useState<string | null>(null); 
   
+  // ADICIONADO: horizon ao estado inicial
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     returnRate: "",
     riskLevel: "medio" as RiskLevel,
+    horizon: "", 
   });
 
-  // Preenche o formulário ao editar
   useEffect(() => {
     if (editingId) {
       const opportunity = data.find((opp) => opp.id === editingId);
@@ -571,6 +564,7 @@ function OpportunitiesManager() {
             ? String(opportunity.return_rate * 100)
             : "",
           riskLevel: (opportunity.risk_level as RiskLevel) || "medio",
+          horizon: opportunity.horizon || "", // CARREGAR DO BANCO
         });
       }
     } else {
@@ -579,6 +573,7 @@ function OpportunitiesManager() {
         description: "",
         returnRate: "",
         riskLevel: "medio",
+        horizon: "",
       });
     }
   }, [editingId, data]);
@@ -597,6 +592,7 @@ function OpportunitiesManager() {
         description: formData.description.trim() || null,
         return_rate: formData.returnRate ? Number(formData.returnRate) / 100 : null,
         risk_level: formData.riskLevel,
+        horizon: formData.horizon.trim() || null, // ENVIAR AO BANCO
         is_active: true,
       };
 
@@ -608,7 +604,7 @@ function OpportunitiesManager() {
         await add(payload);
         toast({ title: "Oportunidade criada com sucesso." });
       }
-      setFormData({ name: "", description: "", returnRate: "", riskLevel: "medio" });
+      setFormData({ name: "", description: "", returnRate: "", riskLevel: "medio", horizon: "" });
     } catch (e) {
       toast({ title: "Erro", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -617,7 +613,7 @@ function OpportunitiesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    setDeletingId(id); // Agora 'deletingId' existe
+    setDeletingId(id); 
     try {
       await remove(id);
       toast({ title: "Oportunidade removida com sucesso." });
@@ -641,7 +637,6 @@ function OpportunitiesManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Formulário (cria/edita) */}
         <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="o-name">Nome</Label>
@@ -664,16 +659,18 @@ function OpportunitiesManager() {
               placeholder="Ex.: 18"
             />
           </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="o-desc">Descrição</Label>
-            <Textarea
-              id="o-desc"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Resumo executivo da oportunidade..."
-              rows={3}
+
+          {/* ADICIONADO: Campo Horizonte de Investimento */}
+          <div className="space-y-1.5">
+            <Label htmlFor="o-horizon">Prazo de Investimento (Horizonte)</Label>
+            <Input
+              id="o-horizon"
+              value={formData.horizon}
+              onChange={(e) => setFormData({ ...formData, horizon: e.target.value })}
+              placeholder="Ex.: 12 - 36 meses"
             />
           </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="o-risk">Nível de risco</Label>
             <Select
@@ -690,6 +687,18 @@ function OpportunitiesManager() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="o-desc">Descrição</Label>
+            <Textarea
+              id="o-desc"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Resumo executivo da oportunidade..."
+              rows={3}
+            />
+          </div>
+
           <Button
             type="submit"
             disabled={submitting}
@@ -720,6 +729,7 @@ function OpportunitiesManager() {
                   description: "",
                   returnRate: "",
                   riskLevel: "medio",
+                  horizon: "",
                 });
               }}
               className="md:col-span-2 w-fit"
@@ -729,100 +739,85 @@ function OpportunitiesManager() {
           )}
         </form>
 
-        {/* Tabela de oportunidades */}
-        {loading ? (
-          <LoadingState label="Carregando oportunidades..." />
-        ) : error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        ) : data.length === 0 ? (
-          <EmptyState
-            icon={<Briefcase className="h-5 w-5" />}
-            title="Nenhuma oportunidade cadastrada"
-            description="Adicione a primeira oportunidade no formulário acima."
-          />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Risco</TableHead>
-                <TableHead>Retorno</TableHead>
-                <TableHead className="w-[100px]">Ativa</TableHead>
-                <TableHead className="w-[160px] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-[10px] uppercase">
-                      {row.risk_level}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {row.return_rate != null ? `${(row.return_rate * 100).toFixed(2)}%` : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={row.is_active}
-                      onCheckedChange={(v) => toggle(row.id, v)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingId(row.id)}
-                      className="h-8 gap-1"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                      Editar
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={deletingId === row.id}
-                          className="h-8 gap-1"
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Risco</TableHead>
+              <TableHead>Retorno</TableHead>
+              <TableHead className="w-[100px]">Ativa</TableHead>
+              <TableHead className="w-[160px] text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium">{row.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-[10px] uppercase">
+                    {row.risk_level}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm">
+                  {row.return_rate != null ? `${(row.return_rate * 100).toFixed(2)}%` : "—"}
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={row.is_active}
+                    onCheckedChange={(v) => toggle(row.id, v)}
+                  />
+                </TableCell>
+                <TableCell className="text-right space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingId(row.id)}
+                    className="h-8 gap-1"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={deletingId === row.id}
+                        className="h-8 gap-1"
+                      >
+                        {deletingId === row.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Deletar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja remover a oportunidade{" "}
+                          <span className="font-medium">{row.name}</span>?
+                          Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(row.id)}
+                          className="bg-destructive hover:bg-destructive/90"
                         >
-                          {deletingId === row.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                          Deletar
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja remover a oportunidade{" "}
-                            <span className="font-medium">{row.name}</span>?
-                            Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(row.id)}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            Confirmar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+                          Confirmar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
