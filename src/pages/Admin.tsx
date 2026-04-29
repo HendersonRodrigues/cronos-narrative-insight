@@ -558,9 +558,14 @@ function QuestionsManager() {
 function OpportunitiesManager() {
   const { data, loading, error, add, update, remove, toggle } = useAdminOpportunities();
   const { toast } = useToast();
+  
+  // ESTADOS ADICIONADOS PARA CORREÇÃO
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false); // Corrigido: definido o estado que faltava
+  const [deletingId, setDeletingId] = useState<string | null>(null); // Corrigido: definido o estado que faltava
+  
   const [formData, setFormData] = useState({
-    name: "",           // Usa 'name' (agora NOT NULL)
+    name: "",
     description: "",
     returnRate: "",
     riskLevel: "medio" as RiskLevel,
@@ -572,7 +577,7 @@ function OpportunitiesManager() {
       const opportunity = data.find((opp) => opp.id === editingId);
       if (opportunity) {
         setFormData({
-          name: opportunity.name || opportunity.title || "", // Fallback para 'title'
+          name: opportunity.name || opportunity.title || "",
           description: opportunity.description || "",
           returnRate: opportunity.return_rate ? String(opportunity.return_rate * 100) : "",
           riskLevel: opportunity.risk_level || "medio",
@@ -595,10 +600,10 @@ function OpportunitiesManager() {
       return;
     }
 
-    setSubmitting(true);
+    setSubmitting(true); // Agora 'submitting' existe
     try {
       const payload = {
-        name: formData.name.trim(),  // Usa 'name' (NOT NULL)
+        name: formData.name.trim(),
         description: formData.description.trim() || null,
         return_rate: formData.returnRate ? Number(formData.returnRate) / 100 : null,
         risk_level: formData.riskLevel,
@@ -622,7 +627,7 @@ function OpportunitiesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    setDeletingId(id);
+    setDeletingId(id); // Agora 'deletingId' existe
     try {
       await remove(id);
       toast({ title: "Oportunidade removida com sucesso." });
