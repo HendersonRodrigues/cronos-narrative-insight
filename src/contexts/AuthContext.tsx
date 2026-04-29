@@ -37,9 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 const fetchProfileData = async (userId: string) => {
     if (!supabase) return;
     try {
+      // IMPORTANTE: a coluna `role` foi removida de `profiles` na migração para
+      // o sistema dedicado `user_roles`. Não incluir aqui — selecionar uma
+      // coluna inexistente faz o select inteiro falhar.
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, updated_at, role, risk_profile") // Colunas reais do seu banco
+        .select("id, full_name, avatar_url, updated_at, risk_profile")
         .eq("id", userId)
         .maybeSingle();
 
