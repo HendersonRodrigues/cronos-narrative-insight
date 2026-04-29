@@ -83,22 +83,39 @@ const fetchProfileData = async (userId: string) => {
         return Boolean(data);
       };
 
-      if (await checkRole("admin")) {
-        setUserRole("admin");
-        return;
-      }
-      if (await checkRole("moderator")) {
-        setUserRole("moderator");
-        return;
-      }
-      setUserRole("user");
+      // Checa admin/moderator em paralelo. Fallback: consulta direta a
+      // user_roles caso o RPC has_role não exista no projeto.
+      const [isAdminRpc, isModRpc] = await Promise.all([
+        checkRole("admin"),
+        checkRole("moderator"),
+      ]);
+
+      console.info("[Auth] role check via RPC", { userId, isAdminRpc, isModRpc });
+
+      if (isAdminRpc) setUserRole("admin");
+      else if (isModRpc) setUserRole("moderator");
+      else setUserRole("user");
     } catch (err) {
-      // RPC ausente ou sem permissão — degrada para usuário comum.
       console.warn(
-        "[Auth] has_role indisponível, assumindo 'user':",
+        "[Auth] has_role indisponível, tentando fallback user_roles:",
         (err as Error)?.message,
       );
-      setUserRole("user");
+      // Fallback: lê diretamente da tabela user_roles
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+        if (error) throw error;
+        const roles = (data ?? []).map((r) => r.role as AppRole);
+        console.info("[Auth] roles via tabela user_roles", roles);
+        if (roles.includes("admin")) setUserRole("admin");
+        else if (roles.includes("moderator")) setUserRole("moderator");
+        else setUserRole("user");
+      } catch (e) {
+        console.warn("[Auth] fallback user_roles falhou:", (e as Error)?.message);
+        setUserRole("user");
+      }
     }
   };
 
