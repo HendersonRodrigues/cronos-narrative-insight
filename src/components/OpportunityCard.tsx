@@ -47,7 +47,8 @@ export default function OpportunityCard({ opportunity, onInterest }: Opportunity
   const [amount, setAmount] = useState<number>(1000);
   // Define o tempo inicial baseado no mínimo da oportunidade (ou 12 se não houver)
   const [months, setMonths] = useState<number>(opportunity.minMonths || 12);
-  const styles = ACCENT_STYLES[opportunity.accent];
+  // Se o banco trouxer um accent que não existe ou for nulo, usa 'navy' como padrão
+const styles = ACCENT_STYLES[opportunity.accent as keyof typeof ACCENT_STYLES] || ACCENT_STYLES.navy;
 
   // CÁLCULO DE JUROS SIMPLES: M = P + (P * i * n)
   const projection = useMemo(() => {
