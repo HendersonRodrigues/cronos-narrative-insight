@@ -577,10 +577,12 @@ function OpportunitiesManager() {
       const opportunity = data.find((opp) => opp.id === editingId);
       if (opportunity) {
         setFormData({
-          name: opportunity.name || opportunity.title || "",
+          name: opportunity.name || "",
           description: opportunity.description || "",
-          returnRate: opportunity.return_rate ? String(opportunity.return_rate * 100) : "",
-          riskLevel: opportunity.risk_level || "medio",
+          returnRate: opportunity.return_rate
+            ? String(opportunity.return_rate * 100)
+            : "",
+          riskLevel: (opportunity.risk_level as RiskLevel) || "medio",
         });
       }
     } else {
@@ -607,6 +609,8 @@ function OpportunitiesManager() {
         description: formData.description.trim() || null,
         return_rate: formData.returnRate ? Number(formData.returnRate) / 100 : null,
         risk_level: formData.riskLevel,
+        category: null,
+        min_investment: null,
         is_active: true,
       };
 

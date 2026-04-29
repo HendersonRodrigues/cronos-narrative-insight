@@ -113,3 +113,27 @@ export async function toggleOpportunityActive(
     .eq("id", id);
   if (error) throw error;
 }
+
+export async function updateOpportunity(
+  id: string,
+  patch: Partial<InvestmentOpportunityRow>,
+): Promise<InvestmentOpportunityRow> {
+  if (!supabase) throw new Error("Supabase not configured");
+  const { data, error } = await supabase
+    .from("investment_opportunities")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as InvestmentOpportunityRow;
+}
+
+export async function deleteOpportunity(id: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase not configured");
+  const { error } = await supabase
+    .from("investment_opportunities")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}

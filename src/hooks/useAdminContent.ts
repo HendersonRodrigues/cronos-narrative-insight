@@ -13,6 +13,8 @@ import {
   listOpportunities,
   createOpportunity,
   toggleOpportunityActive,
+  updateOpportunity,
+  deleteOpportunity,
 } from "@/services/adminService";
 import type {
   AppQuestionRow,
@@ -114,5 +116,21 @@ export function useAdminOpportunities() {
     [refresh],
   );
 
-  return { data, loading, error, refresh, add, toggle };
+  const update = useCallback(
+    async (id: string, patch: Partial<InvestmentOpportunityRow>) => {
+      await updateOpportunity(id, patch);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      await deleteOpportunity(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { data, loading, error, refresh, add, toggle, update, remove };
 }
