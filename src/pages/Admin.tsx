@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { runAlfaDiagnostics, TestResult } from "@/tests/alfaDiagnostics";
+import { CheckCircle2, XCircle, AlertCircle, PlayCircle } from "lucide-react";
 
 import {
   Card,
@@ -81,10 +83,27 @@ export default function Admin() {
   const [stats, setStats] = useState({ users: 0, leads: 0, insights: 0 });
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [insights, setInsights] = useState<InsightRow[]>([]);
+  // --- Bloco de Diagnóstico Alfa ---
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [isRunningTests, setIsRunningTests] = useState(false);
 
+  const executeTests = async () => {
+    setIsRunningTests(true);
+    try {
+      const results = await runAlfaDiagnostics();
+      setTestResults(results);
+    } catch (error) {
+      console.error("Falha nos testes:", error);
+    } finally {
+      setIsRunningTests(false);
+    }
+  };
+  // ---------------------------------
+
+  
   useEffect(() => {
     let mounted = true;
-
+    
     async function fetchAll() {
       if (!supabase) return;
       setLoading(true);
@@ -185,6 +204,10 @@ export default function Admin() {
           <TabsTrigger value="smart-paste" className="gap-1.5">
             <Wand2 className="h-3.5 w-3.5" />
             Smart-Paste
+          </TabsTrigger>
+          <TabsTrigger value="diagnostics" className="gap-1.5">
+            <PlayCircle className="h-3.5 w-3.5" />
+            Alfa
           </TabsTrigger>
         </TabsList>
 
@@ -306,6 +329,44 @@ export default function Admin() {
           <ErrorBoundary serviceName="ui:smart-paste">
             <SmartPasteManager />
           </ErrorBoundary>
+        </TabsContent>
+        <TabsContent value="diagnostics" className="space-y-4">
+          <Card className="border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Painel de Diagnóstico Alfa</CardTitle>
+                <CardDescription>Verifique a integridade dos dados e conexões</CardDescription>
+              </div>
+              <Button onClick={executeTests} disabled={isRunningTests} className="gap-2">
+                {isRunningTests ? <Loader2 className="animate-spin h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+                Rodar Testes
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {testResults.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl bg-secondary/5">
+                    <AlertCircle className="h-8 w-8 text-muted-foreground mb-3 opacity-20" />
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum teste executado ainda. Clique no botão acima para iniciar.
+                    </p>
+                  </div>
+                )}
+                {testResults.map((test, i) => (
+                  <div key={i} className="flex items-start gap-3 p-4 rounded-lg border bg-card/50 transition-all animate-in fade-in slide-in-from-bottom-2">
+                    {test.status === 'pass' && <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5" />}
+                    {test.status === 'fail' && <XCircle className="h-5 w-5 text-destructive mt-0.5" />}
+                    {test.status === 'warning' && <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />}
+                    
+                    <div>
+                      <p className="text-sm font-semibold leading-none">{test.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1.5">{test.message}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
