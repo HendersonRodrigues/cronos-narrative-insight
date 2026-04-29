@@ -32,26 +32,29 @@ export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }:
     return shuffled.slice(0, count);
   };
 
-  useEffect(() => {
+ useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         setLoadingQs(true);
-        // Busca perguntas do banco
         const rows = await listQuestions({ onlyActive: true });
         
         if (!mounted) return;
 
-        if (rows && rows.length > 0) {
-          const allTexts = rows.map((r) => r.text);
-          setSuggestions(getRandomQuestions(allTexts, 4));
-        } else {
-          setSuggestions(getRandomQuestions(FALLBACK_SUGGESTIONS, 4));
-        }
+        // Definimos a fonte de dados (Banco ou Fallback)
+        const dataSource = (rows && rows.length > 0) 
+          ? rows.map((r) => r.text) 
+          : FALLBACK_SUGGESTIONS;
+
+        // AQUI ESTÁ A CORREÇÃO: Aplicamos o sorteio e limitamos a 4
+        const selected = getRandomQuestions(dataSource, 4);
+        setSuggestions(selected);
+
       } catch (error) {
         console.error("Erro ao carregar perguntas:", error);
         if (!mounted) return;
         setErrored(true);
+        // Aplica o sorteio também no erro para manter o padrão de 4
         setSuggestions(getRandomQuestions(FALLBACK_SUGGESTIONS, 4));
       } finally {
         if (mounted) setLoadingQs(false);
