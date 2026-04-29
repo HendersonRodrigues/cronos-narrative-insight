@@ -26,23 +26,33 @@ export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }:
   const [loadingQs, setLoadingQs] = useState(true);
   const [errored, setErrored] = useState(false);
 
+  // Função para embaralhar e selecionar 4 perguntas
+  const getRandomQuestions = (questions: string[], count = 4) => {
+    const shuffled = [...questions].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
+        setLoadingQs(true);
+        // Busca perguntas do banco
         const rows = await listQuestions({ onlyActive: true });
+        
         if (!mounted) return;
-        // Use DB content when present, otherwise fall back to local suggestions
-        // so the section is always meaningful even before content is curated.
-        if (rows.length > 0) {
-          setSuggestions(rows.map((r) => r.text));
+
+        if (rows && rows.length > 0) {
+          const allTexts = rows.map((r) => r.text);
+          setSuggestions(getRandomQuestions(allTexts, 4));
         } else {
-          setSuggestions(FALLBACK_SUGGESTIONS);
+          setSuggestions(getRandomQuestions(FALLBACK_SUGGESTIONS, 4));
         }
-      } catch {
+      } catch (error) {
+        console.error("Erro ao carregar perguntas:", error);
         if (!mounted) return;
         setErrored(true);
-        setSuggestions(FALLBACK_SUGGESTIONS);
+        setSuggestions(getRandomQuestions(FALLBACK_SUGGESTIONS, 4));
       } finally {
         if (mounted) setLoadingQs(false);
       }
@@ -57,6 +67,7 @@ export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }:
     const trimmed = value.trim();
     if (!trimmed || isLoading) return;
     onSubmit(trimmed);
+    setValue(""); // Limpa o campo após enviar
   }
 
   function handleSuggestion(text: string) {
@@ -116,9 +127,9 @@ export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }:
         />
       ) : (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {suggestions.map((s) => (
+          {suggestions.map((s, idx) => (
             <button
-              key={s}
+              key={`${s}-${idx}`} // Chave composta para evitar problemas com textos duplicados
               type="button"
               onClick={() => handleSuggestion(s)}
               disabled={isLoading}
