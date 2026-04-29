@@ -38,6 +38,7 @@ function mapRowToOpportunity(
 ): Opportunity {
   const annualReturn =
     row.return_rate != null ? Number(row.return_rate) * 100 : 0;
+  
   return {
     id: row.id,
     title: row.name ?? "Oportunidade",
@@ -47,7 +48,12 @@ function mapRowToOpportunity(
     annualReturn,
     highlight: `${annualReturn.toFixed(1)}% a.a.`,
     riskLabel: riskToLabel(row.risk_level),
-    horizon: "Médio / Longo prazo",
+    
+    // ALTERAÇÃO AQUI: 
+    // Se existir valor no banco (row.horizon), use-o. 
+    // Caso contrário, use o texto padrão.
+    horizon: row.horizon ?? "Médio / Longo prazo", 
+    
     accent: ACCENTS[index % ACCENTS.length],
     minMonths: 12,
     maxMonths: 60,
