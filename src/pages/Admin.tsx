@@ -612,6 +612,10 @@ function OpportunitiesManager() {
         category: null,
         min_investment: null,
         is_active: true,
+        // Garante que a oportunidade apareça imediatamente em /oportunidades
+        // (a página filtra por status='published' AND is_archived=false).
+        status: "published" as const,
+        is_archived: false,
       };
 
       if (editingId) {
