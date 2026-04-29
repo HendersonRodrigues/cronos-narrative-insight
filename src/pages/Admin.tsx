@@ -192,7 +192,6 @@ export default function Admin() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle>Leads recentes</CardTitle>
-              <CardTitle>Leads recentes</CardTitle>
               <CardDescription>
                 Últimos 15 interesses capturados nas oportunidades.
               </CardDescription>
