@@ -38,7 +38,11 @@ function mapRowToOpportunity(
 ): Opportunity {
   const annualReturn =
     row.return_rate != null ? Number(row.return_rate) * 100 : 0;
-  
+
+  // Lógica para extrair o número mínimo de meses do texto (ex: "12 - 36 meses" -> 12)
+  const horizonText = row.horizon ?? "12 meses";
+  const extractedMonths = parseInt(horizonText.match(/\d+/)?.[0] || "12", 10);
+
   return {
     id: row.id,
     title: row.name ?? "Oportunidade",
@@ -48,15 +52,12 @@ function mapRowToOpportunity(
     annualReturn,
     highlight: `${annualReturn.toFixed(1)}% a.a.`,
     riskLabel: riskToLabel(row.risk_level),
-    
-    // ALTERAÇÃO AQUI: 
-    // Se existir valor no banco (row.horizon), use-o. 
-    // Caso contrário, use o texto padrão.
-    horizon: row.horizon ?? "Médio / Longo prazo", 
-    
+    horizon: horizonText, // Mantém o texto bonitinho para o Card
     accent: ACCENTS[index % ACCENTS.length],
-    minMonths: 12,
-    maxMonths: 60,
+    
+    // AGORA O CÁLCULO USA O QUE VOCÊ DIGITOU:
+    minMonths: extractedMonths, 
+    maxMonths: extractedMonths > 60 ? extractedMonths : 60, // Ajusta o teto da barra se necessário
     comparisonCDI: 1.5,
   };
 }
