@@ -69,8 +69,11 @@ export default function Oportunidades() {
           .from("investment_opportunities")
           .select("*")
           .eq("is_active", true)
-          .eq("is_archived", false)
-          .eq("status", "published")
+          // Tolerante a registros legados sem status/is_archived definidos:
+          // exibe se NÃO está arquivado (is_archived = false OU NULL) e
+          // status é 'published' OU NULL (criados antes da governance).
+          .or("is_archived.is.null,is_archived.eq.false")
+          .or("status.is.null,status.eq.published")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
