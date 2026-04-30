@@ -41,44 +41,50 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
 
 const chartData = useMemo(() => {
   const snap = active ? snapshots[active] : null;
-  if (!snap || snap.history.length === 0) return [];
+  if (!snap || !snap.history || snap.history.length === 0) return [];
 
   const history = snap.history;
   
-  // 1. Configuração do Período
+  // 1. Pegamos a data de HOJE como referência real, não o último ponto do banco
+  const now = new Date();
   const selectedPeriod = PERIODS.find((p) => p.key === period);
   const daysLimit = selectedPeriod?.days ?? 30;
 
-  // 2. Filtro de Data (Baseado no último ponto do histórico do ativo)
-  const lastPointDate = new Date(history[history.length - 1].date);
-  const cutoff = new Date(lastPointDate);
-  cutoff.setDate(cutoff.getDate() - daysLimit);
+  // 2. Definimos o corte (Cutoff) retrocedendo a partir de HOJE
+  const cutoff = new Date();
+  cutoff.setDate(now.getDate() - daysLimit);
 
-  const filtered = history.filter((p) => new Date(p.date) >= cutoff);
-  
-  // 3. Lógica de Densidade Inteligente
-  // Se o ativo for esparso (mensal/trimestral), mostramos tudo.
-  // Se for denso (diário), reduzimos para manter a performance e fluidez.
-  const totalPoints = filtered.length;
-  const maxVisualPoints = 120; // Ideal para um gráfico limpo
-  
-  let dynamicStep = 1;
-  if (totalPoints > maxVisualPoints) {
-    dynamicStep = Math.ceil(totalPoints / maxVisualPoints);
-  }
-
-  // 4. Mapeamento dos Dados com Downsampling
-  const series = filtered.filter((_, index) => {
-    // Mantém o primeiro ponto, o último ponto, e os pontos conforme o step
-    return index === 0 || index === totalPoints - 1 || index % dynamicStep === 0;
+  // 3. Filtramos: pontos que estão entre (Hoje - Período) até (Hoje)
+  // Isso remove o "Selic Futuro" da visão do gráfico principal
+  const filtered = history.filter((p) => {
+    const pointDate = new Date(p.date);
+    return pointDate >= cutoff && pointDate <= now;
   });
 
-  return series.map((p) => ({
-    date: p.date,
-    label: formatDateBR(p.date),
-    value: Number(p.value),
-  }));
+  // 4. Se o filtro acima resultar em vazio (ex: ativo sem dados recentes),
+  // pegamos os últimos X dias a partir do último dado disponível para não deixar o gráfico em branco
+  let finalData = filtered;
+  if (finalData.length === 0) {
+    const lastAvailable = new Date(history[history.length - 1].date);
+    const emergencyCutoff = new Date(lastAvailable);
+    emergencyCutoff.setDate(lastAvailable.getDate() - daysLimit);
+    finalData = history.filter(p => new Date(p.date) >= emergencyCutoff);
+  }
+
+  // 5. Downsampling Dinâmico (para performance em 10Y)
+  const totalPoints = finalData.length;
+  const maxVisualPoints = 120;
+  const dynamicStep = totalPoints > maxVisualPoints ? Math.ceil(totalPoints / maxVisualPoints) : 1;
+
+  return finalData
+    .filter((_, index) => index % dynamicStep === 0 || index === totalPoints - 1)
+    .map((p) => ({
+      date: p.date,
+      label: formatDateBR(p.date),
+      value: Number(p.value),
+    }));
 }, [snapshots, active, period]);
+  
 
   if (available.length === 0) {
     return (
@@ -171,10 +177,14 @@ const chartData = useMemo(() => {
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  minTickGap={32}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                  minTickGap={40} // Aumentar isso ajuda a não amontoar datas em 10Y
+                  tickFormatter={(value) => {
+                    // Se o período for maior que 1 ano, mostra apenas o mês/ano para não poluir
+                    if (period === "M") return value; 
+                    const parts = value.split('/');
+                    return `${parts[1]}/${parts[2]}`; // Retorna MM/AAAA
+                  }}
                 />
                 <YAxis
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
