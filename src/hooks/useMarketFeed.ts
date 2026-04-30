@@ -13,7 +13,7 @@ async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
     .select("*")
     .order("date", { ascending: false })
     .order("id", { ascending: false })
-    .limit(1200);
+    .limit(10000);
 
   if (error) {
     // Registra falha de integração antes de propagar
