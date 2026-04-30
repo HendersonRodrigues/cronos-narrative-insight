@@ -23,9 +23,9 @@ interface MarketChartProps {
 
 type PeriodKey = "M" | "6M" | "Y" | "3Y" | "5Y" | "10Y";
 const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
-  { key: "M", label: "M", days: 30 },
+  { key: "M", label: "1M", days: 30 },
   { key: "6M", label: "6M", days: 180 },
-  { key: "Y", label: "Y", days: 365 },
+  { key: "Y", label: "1Y", days: 365 },
   { key: "3Y", label: "3Y", days: 365 * 3 },
   { key: "5Y", label: "5Y", days: 365 * 5 },
   { key: "10Y", label: "10Y", days: 365 * 10 },
@@ -39,34 +39,46 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
   const active = selected && snapshots[selected] ? selected : available[0] ?? "";
   const meta = active ? getAssetMeta(active) : null;
 
-  const chartData = useMemo(() => {
-    const snap = active ? snapshots[active] : null;
-    if (!snap) return [];
-    const days = PERIODS.find((p) => p.key === period)?.days ?? 90;
-    // history vem ordenado asc por data; filtra pelo período baseado na data do último ponto
-    const history = snap.history;
-    if (history.length === 0) return [];
-    const lastDate = new Date(history[history.length - 1].date);
-    const cutoff = new Date(lastDate);
-    cutoff.setDate(cutoff.getDate() - days);
-    const filtered = history.filter((p) => new Date(p.date) >= cutoff);
-    // Se não houver dados suficientes no período, usa todo o histórico disponível
-    const series = filtered.length > 1 ? filtered : history;
-    return series.map((p) => ({
-      date: p.date,
-      label: formatDateBR(p.date),
-      value: Number(p.value),
-    }));
-  }, [snapshots, active, period]);
+const chartData = useMemo(() => {
+  const snap = active ? snapshots[active] : null;
+  if (!snap || snap.history.length === 0) return [];
 
-  if (isLoading) {
-    return (
-      <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-5">
-        <Skeleton className="h-4 w-40 mb-4" />
-        <Skeleton className="h-64 w-full" />
-      </Card>
-    );
+  const history = snap.history;
+  
+  // 1. Configuração do Período
+  const selectedPeriod = PERIODS.find((p) => p.key === period);
+  const daysLimit = selectedPeriod?.days ?? 30;
+
+  // 2. Filtro de Data (Baseado no último ponto do histórico do ativo)
+  const lastPointDate = new Date(history[history.length - 1].date);
+  const cutoff = new Date(lastPointDate);
+  cutoff.setDate(cutoff.getDate() - daysLimit);
+
+  const filtered = history.filter((p) => new Date(p.date) >= cutoff);
+  
+  // 3. Lógica de Densidade Inteligente
+  // Se o ativo for esparso (mensal/trimestral), mostramos tudo.
+  // Se for denso (diário), reduzimos para manter a performance e fluidez.
+  const totalPoints = filtered.length;
+  const maxVisualPoints = 120; // Ideal para um gráfico limpo
+  
+  let dynamicStep = 1;
+  if (totalPoints > maxVisualPoints) {
+    dynamicStep = Math.ceil(totalPoints / maxVisualPoints);
   }
+
+  // 4. Mapeamento dos Dados com Downsampling
+  const series = filtered.filter((_, index) => {
+    // Mantém o primeiro ponto, o último ponto, e os pontos conforme o step
+    return index === 0 || index === totalPoints - 1 || index % dynamicStep === 0;
+  });
+
+  return series.map((p) => ({
+    date: p.date,
+    label: formatDateBR(p.date),
+    value: Number(p.value),
+  }));
+}, [snapshots, active, period]);
 
   if (available.length === 0) {
     return (
