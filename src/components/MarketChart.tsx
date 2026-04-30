@@ -13,7 +13,8 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateBR, formatValue, getAssetMeta } from "@/lib/format";
 import type { AssetSnapshot } from "@/hooks/useMarketSnapshot";
-import { TrendingUp } from "lucide-react";
+import { useAssetHistory } from "@/hooks/useMarketFeed"; // Importando o novo hook
+import { TrendingUp, AlertCircle, Loader2 } from "lucide-react";
 
 interface MarketChartProps {
   snapshots: Record<string, AssetSnapshot>;
@@ -31,67 +32,74 @@ const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
   { key: "10Y", label: "10Y", days: 365 * 10 },
 ];
 
-export default function MarketChart({ snapshots, isLoading, defaultAsset }: MarketChartProps) {
+export default function MarketChart({ snapshots, isLoading: loadingSnapshots, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
-  const [selected, setSelected] = useState<string>(defaultAsset ?? available[0] ?? "");
+  const [selected, setSelected] = useState(defaultAsset || available[0] || "selic");
   const [period, setPeriod] = useState<PeriodKey>("M");
 
-  const active = selected && snapshots[selected] ? selected : available[0] ?? "";
+  // Hook de Buffer/Cache para histórico profundo
+  const { data: fullHistory, isLoading: loadingHistory } = useAssetHistory(selected);
+
+  const active = selected;
   const meta = active ? getAssetMeta(active) : null;
 
-const chartData = useMemo(() => {
-  const snap = active ? snapshots[active] : null;
-  if (!snap || !snap.history || snap.history.length === 0) return { series: [], info: null };
+  const chartData = useMemo(() => {
+    if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
-  const history = snap.history;
-  const now = new Date();
-  const selectedPeriod = PERIODS.find((p) => p.key === period);
-  const daysLimit = selectedPeriod?.days ?? 30;
+    const now = new Date();
+    const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
 
-  // 1. PONTO FINAL: O último dado real que não ultrapassa HOJE
-  // Filtramos o futuro (Selic Futuro) para a âncora do gráfico
-  const pastData = history.filter(p => new Date(p.date) <= now);
-  if (pastData.length === 0) return { series: [], info: null };
+    // 1. Filtro de segurança contra dados futuros (Ancoragem no presente)
+    const pastData = fullHistory.filter(p => new Date(p.date) <= now);
+    if (pastData.length === 0) return { series: [], info: null };
+    
+    const endDate = new Date(pastData[pastData.length - 1].date);
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - daysLimit);
 
-  const endDate = new Date(pastData[pastData.length - 1].date);
+    const filtered = fullHistory.filter(p => {
+      const d = new Date(p.date);
+      return d >= startDate && d <= endDate;
+    });
 
-  // 2. DATA DE INÍCIO DESEJADA (Retroceder X dias da âncora)
-  const targetStartDate = new Date(endDate);
-  targetStartDate.setDate(endDate.getDate() - daysLimit);
+    // 2. Verificação de dados limitados
+    const firstDateInDB = new Date(fullHistory[0].date);
+    const hasFullPeriod = firstDateInDB <= startDate;
 
-  // 3. FILTRAGEM DO INTERVALO
-  const filtered = history.filter((p) => {
-    const d = new Date(p.date);
-    return d >= targetStartDate && d <= endDate;
-  });
+    // 3. Downsampling dinâmico (Max 150 pontos para fluidez)
+    const totalPoints = filtered.length;
+    const maxPoints = 150;
+    const step = totalPoints > maxPoints ? Math.ceil(totalPoints / maxPoints) : 1;
 
-  // 4. VERIFICAÇÃO DE DADOS LIMITADOS
-  const firstAvailableDate = new Date(history[0].date);
-  const hasFullPeriod = firstAvailableDate <= targetStartDate;
-  
-  // Cálculo de quantos anos temos no total deste ativo
-  const totalDays = (endDate.getTime() - firstAvailableDate.getTime()) / (1000 * 60 * 60 * 24);
-  const availableYears = (totalDays / 365).toFixed(1);
+    const series = filtered
+      .filter((_, i) => i % step === 0 || i === totalPoints - 1)
+      .map(p => ({ 
+        date: p.date, 
+        label: formatDateBR(p.date), 
+        value: Number(p.value) 
+      }));
 
-  // 5. DOWNSAMPLING (Mantém o gráfico leve)
-  const totalPoints = filtered.length;
-  const maxPoints = 120;
-  const step = totalPoints > maxPoints ? Math.ceil(totalPoints / maxPoints) : 1;
+    return {
+      series,
+      info: { 
+        hasFullPeriod, 
+        firstDate: formatDateBR(fullHistory[0].date),
+        totalYears: ((endDate.getTime() - firstDateInDB.getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1)
+      }
+    };
+  }, [fullHistory, period]);
 
-  const series = filtered
-    .filter((_, idx) => idx % step === 0 || idx === totalPoints - 1)
-    .map(p => ({
-      date: p.date,
-      label: formatDateBR(p.date),
-      value: Number(p.value)
-    }));
-
-  return { 
-    series, 
-    info: { hasFullPeriod, firstDate: formatDateBR(history[0].date), availableYears } 
-  };
-}, [snapshots, active, period]);
-
+  if (loadingSnapshots || (loadingHistory && chartData.series.length === 0)) {
+    return (
+      <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <Skeleton className="h-64 w-full" />
+      </Card>
+    );
+  }
 
   if (available.length === 0) {
     return (
@@ -162,17 +170,27 @@ const chartData = useMemo(() => {
         })}
       </div>
 
-      {chartData.info && !chartData.info.hasFullPeriod && !isLoading && (
-        <div className="mb-2 flex items-center gap-2 rounded-md bg-amber-500/10 px-3 py-1.5 border border-amber-500/20">
-          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+      {/* Alerta de Período Máximo (Elegante) */}
+      {chartData.info && !chartData.info.hasFullPeriod && !loadingHistory && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-3 flex items-center gap-2 rounded-md bg-amber-500/10 px-3 py-2 border border-amber-500/20"
+        >
+          <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
           <p className="text-[10px] font-mono uppercase tracking-tight text-amber-500/90">
-            Período máximo atingido: Histórico desde {chartData.info.firstDate} ({chartData.info.availableYears} anos)
+            Limite de dados atingido: histórico disponível desde {chartData.info.firstDate} ({chartData.info.totalYears} anos)
           </p>
-        </div>
+        </motion.div>
       )}
       
-      {/* Altura fixa evita layout shift entre transições */}
-      <div className="h-64 w-full">
+      <div className="h-64 w-full relative">
+        {loadingHistory && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/40 backdrop-blur-[1px]">
+             <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        
         <AnimatePresence mode="wait">
           <motion.div
             key={`${active}-${period}`}
@@ -183,7 +201,7 @@ const chartData = useMemo(() => {
             className="h-full w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <LineChart data={chartData.series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
@@ -193,13 +211,14 @@ const chartData = useMemo(() => {
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-                  minTickGap={40} // Aumentar isso ajuda a não amontoar datas em 10Y
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  minTickGap={45}
                   tickFormatter={(value) => {
-                    // Se o período for maior que 1 ano, mostra apenas o mês/ano para não poluir
                     if (period === "M") return value; 
                     const parts = value.split('/');
-                    return `${parts[1]}/${parts[2]}`; // Retorna MM/AAAA
+                    return parts.length === 3 ? `${parts[1]}/${parts[2]}` : value;
                   }}
                 />
                 <YAxis
