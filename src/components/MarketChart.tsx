@@ -21,9 +21,19 @@ interface MarketChartProps {
   defaultAsset?: string;
 }
 
+type PeriodKey = "M" | "3M" | "6M" | "Y" | "3Y";
+const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
+  { key: "M", label: "M", days: 30 },
+  { key: "3M", label: "3M", days: 90 },
+  { key: "6M", label: "6M", days: 180 },
+  { key: "Y", label: "Y", days: 365 },
+  { key: "3Y", label: "3Y", days: 365 * 3 },
+];
+
 export default function MarketChart({ snapshots, isLoading, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
   const [selected, setSelected] = useState<string>(defaultAsset ?? available[0] ?? "");
+  const [period, setPeriod] = useState<PeriodKey>("3M");
 
   const active = selected && snapshots[selected] ? selected : available[0] ?? "";
   const meta = active ? getAssetMeta(active) : null;
@@ -31,14 +41,22 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
   const chartData = useMemo(() => {
     const snap = active ? snapshots[active] : null;
     if (!snap) return [];
-    // Limita a últimos 60 pontos para clareza
-    const last = snap.history.slice(-60);
-    return last.map((p) => ({
+    const days = PERIODS.find((p) => p.key === period)?.days ?? 90;
+    // history vem ordenado asc por data; filtra pelo período baseado na data do último ponto
+    const history = snap.history;
+    if (history.length === 0) return [];
+    const lastDate = new Date(history[history.length - 1].date);
+    const cutoff = new Date(lastDate);
+    cutoff.setDate(cutoff.getDate() - days);
+    const filtered = history.filter((p) => new Date(p.date) >= cutoff);
+    // Se não houver dados suficientes no período, usa todo o histórico disponível
+    const series = filtered.length > 1 ? filtered : history;
+    return series.map((p) => ({
       date: p.date,
       label: formatDateBR(p.date),
       value: Number(p.value),
     }));
-  }, [snapshots, active]);
+  }, [snapshots, active, period]);
 
   if (isLoading) {
     return (
@@ -96,6 +114,26 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
             );
           })}
         </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-1">
+        {PERIODS.map((p) => {
+          const isActive = p.key === period;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setPeriod(p.key)}
+              className={`rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                isActive
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border/60 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Altura fixa evita layout shift entre transições */}
