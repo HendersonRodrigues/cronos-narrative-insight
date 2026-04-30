@@ -41,50 +41,57 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
 
 const chartData = useMemo(() => {
   const snap = active ? snapshots[active] : null;
-  if (!snap || !snap.history || snap.history.length === 0) return [];
+  if (!snap || !snap.history || snap.history.length === 0) return { series: [], info: null };
 
   const history = snap.history;
   const now = new Date();
   const selectedPeriod = PERIODS.find((p) => p.key === period);
   const daysLimit = selectedPeriod?.days ?? 30;
 
-  // 1. Definimos a data final do gráfico: Se houver dados futuros, limitamos a hoje.
-  // Se os dados pararem antes de hoje, usamos a data do último ponto disponível.
-  const lastHistoryDate = new Date(history[history.length - 1].date);
-  const endDate = lastHistoryDate > now ? now : lastHistoryDate;
+  // 1. PONTO FINAL: O último dado real que não ultrapassa HOJE
+  // Filtramos o futuro (Selic Futuro) para a âncora do gráfico
+  const pastData = history.filter(p => new Date(p.date) <= now);
+  if (pastData.length === 0) return { series: [], info: null };
 
-  // 2. Definimos a data inicial baseada no período escolhido a partir da endDate
-  const startDate = new Date(endDate);
-  startDate.setDate(endDate.getDate() - daysLimit);
+  const endDate = new Date(pastData[pastData.length - 1].date);
 
-  // 3. Filtragem: Pegamos tudo o que está dentro desse intervalo
-  // Usamos uma margem de segurança para garantir que ativos mensais (IPCA) não sumam no 1M
+  // 2. DATA DE INÍCIO DESEJADA (Retroceder X dias da âncora)
+  const targetStartDate = new Date(endDate);
+  targetStartDate.setDate(endDate.getDate() - daysLimit);
+
+  // 3. FILTRAGEM DO INTERVALO
   const filtered = history.filter((p) => {
-    const pointDate = new Date(p.date);
-    return pointDate >= startDate && pointDate <= endDate;
+    const d = new Date(p.date);
+    return d >= targetStartDate && d <= endDate;
   });
 
-  // 4. Fallback: Se o filtro for muito agressivo (ex: IPCA no 1M), 
-  // garantimos que apareça ao menos os últimos 2 pontos para formar uma linha.
-  let finalData = filtered;
-  if (finalData.length < 2) {
-    finalData = history.slice(-Math.min(history.length, 10));
-  }
+  // 4. VERIFICAÇÃO DE DADOS LIMITADOS
+  const firstAvailableDate = new Date(history[0].date);
+  const hasFullPeriod = firstAvailableDate <= targetStartDate;
+  
+  // Cálculo de quantos anos temos no total deste ativo
+  const totalDays = (endDate.getTime() - firstAvailableDate.getTime()) / (1000 * 60 * 60 * 24);
+  const availableYears = (totalDays / 365).toFixed(1);
 
-  // 5. Downsampling Dinâmico
-  const totalPoints = finalData.length;
-  const maxVisualPoints = 120;
-  const dynamicStep = totalPoints > maxVisualPoints ? Math.ceil(totalPoints / maxVisualPoints) : 1;
+  // 5. DOWNSAMPLING (Mantém o gráfico leve)
+  const totalPoints = filtered.length;
+  const maxPoints = 120;
+  const step = totalPoints > maxPoints ? Math.ceil(totalPoints / maxPoints) : 1;
 
-  return finalData
-    .filter((_, index) => index % dynamicStep === 0 || index === totalPoints - 1)
-    .map((p) => ({
+  const series = filtered
+    .filter((_, idx) => idx % step === 0 || idx === totalPoints - 1)
+    .map(p => ({
       date: p.date,
       label: formatDateBR(p.date),
-      value: Number(p.value),
+      value: Number(p.value)
     }));
+
+  return { 
+    series, 
+    info: { hasFullPeriod, firstDate: formatDateBR(history[0].date), availableYears } 
+  };
 }, [snapshots, active, period]);
-  
+
 
   if (available.length === 0) {
     return (
@@ -155,6 +162,15 @@ const chartData = useMemo(() => {
         })}
       </div>
 
+      {chartData.info && !chartData.info.hasFullPeriod && !isLoading && (
+        <div className="mb-2 flex items-center gap-2 rounded-md bg-amber-500/10 px-3 py-1.5 border border-amber-500/20">
+          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          <p className="text-[10px] font-mono uppercase tracking-tight text-amber-500/90">
+            Período máximo atingido: Histórico desde {chartData.info.firstDate} ({chartData.info.availableYears} anos)
+          </p>
+        </div>
+      )}
+      
       {/* Altura fixa evita layout shift entre transições */}
       <div className="h-64 w-full">
         <AnimatePresence mode="wait">
