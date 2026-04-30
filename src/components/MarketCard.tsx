@@ -72,12 +72,11 @@ export default function MarketCard({ assetId, snapshot, isLoading }: MarketCardP
 
   if (isLoading || !snapshot) {
     return (
-      <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-4 space-y-3">
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-7 w-32" />
-        {/* Reserva o mesmo espaço da sparkline (h-7) para evitar layout shift */}
-        <Skeleton className="h-7 w-full" />
-        <Skeleton className="h-3 w-24" />
+      <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-2.5 space-y-2">
+        <Skeleton className="h-2.5 w-16" />
+        <Skeleton className="h-5 w-24" />
+        {/* Reserva o mesmo espaço da sparkline (h-5) para evitar layout shift */}
+        <Skeleton className="h-5 w-full" />
       </Card>
     );
   }
