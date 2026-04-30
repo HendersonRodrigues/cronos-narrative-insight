@@ -116,6 +116,26 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
         </div>
       </div>
 
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-1">
+        {PERIODS.map((p) => {
+          const isActive = p.key === period;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setPeriod(p.key)}
+              className={`rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                isActive
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border/60 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Altura fixa evita layout shift entre transições */}
       <div className="h-64 w-full">
         <AnimatePresence mode="wait">
