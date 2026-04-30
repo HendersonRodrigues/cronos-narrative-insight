@@ -21,19 +21,20 @@ interface MarketChartProps {
   defaultAsset?: string;
 }
 
-type PeriodKey = "M" | "3M" | "6M" | "Y" | "3Y";
+type PeriodKey = "M" | "6M" | "Y" | "3Y" | "5Y" | "10Y";
 const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
   { key: "M", label: "M", days: 30 },
-  { key: "3M", label: "3M", days: 90 },
   { key: "6M", label: "6M", days: 180 },
   { key: "Y", label: "Y", days: 365 },
   { key: "3Y", label: "3Y", days: 365 * 3 },
+  { key: "5Y", label: "5Y", days: 365 * 5 },
+  { key: "10Y", label: "10Y", days: 365 * 10 },
 ];
 
 export default function MarketChart({ snapshots, isLoading, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
   const [selected, setSelected] = useState<string>(defaultAsset ?? available[0] ?? "");
-  const [period, setPeriod] = useState<PeriodKey>("3M");
+  const [period, setPeriod] = useState<PeriodKey>("M");
 
   const active = selected && snapshots[selected] ? selected : available[0] ?? "";
   const meta = active ? getAssetMeta(active) : null;
@@ -140,7 +141,7 @@ export default function MarketChart({ snapshots, isLoading, defaultAsset }: Mark
       <div className="h-64 w-full">
         <AnimatePresence mode="wait">
           <motion.div
-            key={active}
+            key={`${active}-${period}`}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
