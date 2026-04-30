@@ -44,34 +44,34 @@ const chartData = useMemo(() => {
   if (!snap || !snap.history || snap.history.length === 0) return [];
 
   const history = snap.history;
-  
-  // 1. Pegamos a data de HOJE como referência real, não o último ponto do banco
   const now = new Date();
   const selectedPeriod = PERIODS.find((p) => p.key === period);
   const daysLimit = selectedPeriod?.days ?? 30;
 
-  // 2. Definimos o corte (Cutoff) retrocedendo a partir de HOJE
-  const cutoff = new Date();
-  cutoff.setDate(now.getDate() - daysLimit);
+  // 1. Definimos a data final do gráfico: Se houver dados futuros, limitamos a hoje.
+  // Se os dados pararem antes de hoje, usamos a data do último ponto disponível.
+  const lastHistoryDate = new Date(history[history.length - 1].date);
+  const endDate = lastHistoryDate > now ? now : lastHistoryDate;
 
-  // 3. Filtramos: pontos que estão entre (Hoje - Período) até (Hoje)
-  // Isso remove o "Selic Futuro" da visão do gráfico principal
+  // 2. Definimos a data inicial baseada no período escolhido a partir da endDate
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - daysLimit);
+
+  // 3. Filtragem: Pegamos tudo o que está dentro desse intervalo
+  // Usamos uma margem de segurança para garantir que ativos mensais (IPCA) não sumam no 1M
   const filtered = history.filter((p) => {
     const pointDate = new Date(p.date);
-    return pointDate >= cutoff && pointDate <= now;
+    return pointDate >= startDate && pointDate <= endDate;
   });
 
-  // 4. Se o filtro acima resultar em vazio (ex: ativo sem dados recentes),
-  // pegamos os últimos X dias a partir do último dado disponível para não deixar o gráfico em branco
+  // 4. Fallback: Se o filtro for muito agressivo (ex: IPCA no 1M), 
+  // garantimos que apareça ao menos os últimos 2 pontos para formar uma linha.
   let finalData = filtered;
-  if (finalData.length === 0) {
-    const lastAvailable = new Date(history[history.length - 1].date);
-    const emergencyCutoff = new Date(lastAvailable);
-    emergencyCutoff.setDate(lastAvailable.getDate() - daysLimit);
-    finalData = history.filter(p => new Date(p.date) >= emergencyCutoff);
+  if (finalData.length < 2) {
+    finalData = history.slice(-Math.min(history.length, 10));
   }
 
-  // 5. Downsampling Dinâmico (para performance em 10Y)
+  // 5. Downsampling Dinâmico
   const totalPoints = finalData.length;
   const maxVisualPoints = 120;
   const dynamicStep = totalPoints > maxVisualPoints ? Math.ceil(totalPoints / maxVisualPoints) : 1;
