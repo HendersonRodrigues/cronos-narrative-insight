@@ -90,6 +90,7 @@ export interface InvestmentOpportunityRow {
   status: ContentStatus | string;
   category: string | null;
   min_investment: number | null;
+  horizon: string | null;
   summary: string | null;
   details_content: string | null;
   deep_analysis: string | null;
@@ -136,12 +137,18 @@ export type InvestmentOpportunityInsert = Omit<
   | "deep_analysis"
   | "assets_linked"
   | "author_id"
+  | "category"
+  | "min_investment"
+  | "horizon"
 > & {
   id?: string;
   created_at?: string;
   updated_at?: string | null;
   status?: ContentStatus | string;
   is_archived?: boolean;
+  category?: string | null;
+  min_investment?: number | null;
+  horizon?: string | null;
   summary?: string | null;
   details_content?: string | null;
   deep_analysis?: string | null;
