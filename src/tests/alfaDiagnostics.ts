@@ -13,7 +13,7 @@ export const runAlfaDiagnostics = async (): Promise<TestResult[]> => {
   try {
     const { data, error } = await supabase
       .from('market_data')
-      .select('value')
+      .select('asset_id')
       .ilike('symbol', 'selic')
       .single();
     
