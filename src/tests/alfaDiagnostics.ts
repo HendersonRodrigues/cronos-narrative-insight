@@ -193,5 +193,28 @@ export const runAlfaDiagnostics = async (): Promise<TestResult[]> => {
     });
   }
 
+  // 9. Verificação de Saúde do Sistema (Logs do Cron)
+  try {
+    const { data, error } = await supabase
+      .from("system_health_logs")
+      .select("status, payload")
+      .order("executed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data) {
+      results.push({
+        name: "Saúde do Fetcher (Cron)",
+        status: data.status === "pass" ? "pass" : "fail",
+        message: data.status === "pass" 
+           ? `Último fetcher OK (Selic: ${data.payload.current_selic}%).`
+           : "Atenção: O último fetcher diário reportou erro de integridade.",
+      });
+    }
+  } catch (err) {
+    // Ignora silenciosamente se a tabela ainda não existir
+  }
+
   return results;
 };
