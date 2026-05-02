@@ -98,6 +98,14 @@ export default function Admin() {
       setIsRunningTests(false);
     }
   };
+
+  const handleTabChange = (value: string) => {
+    // Aciona automaticamente os diagnósticos ao abrir a aba Alfa
+    // (apenas se ainda não houver resultados ou execução em andamento).
+    if (value === "diagnostics" && !isRunningTests && testResults.length === 0) {
+      void executeTests();
+    }
+  };
   // ---------------------------------
 
   
@@ -195,7 +203,7 @@ export default function Admin() {
         />
       </div>
 
-      <Tabs defaultValue="leads" className="w-full">
+      <Tabs defaultValue="leads" className="w-full" onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 max-w-[1200px] mb-6">
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="insights">Consultas</TabsTrigger>
