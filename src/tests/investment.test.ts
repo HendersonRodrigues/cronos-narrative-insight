@@ -1,28 +1,35 @@
-// Simulação das funções que estão no seu código
+import { describe, it, expect } from "vitest";
+
+/**
+ * Lógica de investimento — espelha helpers usados nos cards de oportunidade.
+ * Mantemos as funções inline (puras) para validar a regra de negócio sem
+ * acoplar a um componente específico.
+ */
 const extractMinMonths = (horizon: string): number => {
   const match = horizon.match(/\d+/);
   return match ? parseInt(match[0], 10) : 12;
 };
 
-const calculateReturn = (principal: number, annualRate: number, months: number) => {
-  const monthlyRate = (annualRate / 100) / 12;
-  return principal + (principal * monthlyRate * months);
+const calculateReturn = (
+  principal: number,
+  annualRate: number,
+  months: number,
+) => {
+  const monthlyRate = annualRate / 100 / 12;
+  return principal + principal * monthlyRate * months;
 };
 
-// SUITE DE TESTES ALFA
-export const runInvestmentTests = () => {
-  console.group("🧪 Testes Alfa: Lógica de Investimento");
+describe("Lógica de investimento", () => {
+  it("extrai o primeiro número como prazo mínimo", () => {
+    expect(extractMinMonths("12 - 36 meses")).toBe(12);
+    expect(extractMinMonths("24 meses")).toBe(24);
+  });
 
-  // Teste 1: Extração de Prazo
-  const t1 = extractMinMonths("12 - 36 meses") === 12;
-  const t2 = extractMinMonths("24 meses") === 24;
-  const t3 = extractMinMonths("Sem prazo") === 12; // fallback
-  console.log(t1 && t2 && t3 ? "✅ Extração de Horizonte: OK" : "❌ Extração de Horizonte: FALHOU");
+  it("usa fallback de 12 meses quando não há número", () => {
+    expect(extractMinMonths("Sem prazo")).toBe(12);
+  });
 
-  // Teste 2: Precisão Matemática
-  // R$ 1000 a 12% a.a por 12 meses deve dar R$ 1120 (juros simples como no seu card)
-  const result = calculateReturn(1000, 12, 12);
-  console.log(result === 1120 ? "✅ Cálculo de Retorno: OK" : `❌ Cálculo de Retorno: FALHOU (Recebeu: ${result})`);
-
-  console.groupEnd();
-};
+  it("calcula retorno simples (R$1000 @ 12% a.a por 12 meses)", () => {
+    expect(calculateReturn(1000, 12, 12)).toBe(1120);
+  });
+});
