@@ -4,6 +4,7 @@ import { Activity, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveDisplayName } from "@/lib/displayName";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -80,6 +81,7 @@ function DashboardLayout({ children }: DashboardLayoutProps) {
             <span className="text-sm text-muted-foreground max-w-[220px] truncate">
               {displayName}
             </span>
+            <ThemeToggle />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={signOut}>
               <LogOut className="h-4 w-4" aria-hidden />
               Sair
