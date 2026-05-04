@@ -582,6 +582,7 @@ function QuestionsManager() {
               <TableRow>
                 <TableHead>Pergunta</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead className="min-w-[180px]">Metadados IA</TableHead>
                 <TableHead className="w-[100px]">Ativa</TableHead>
                 <TableHead className="w-[80px] text-right">Ações</TableHead>
               </TableRow>
@@ -589,12 +590,29 @@ function QuestionsManager() {
             <TableBody>
               {data.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="text-sm">{row.text}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-sm align-top">{row.text}</TableCell>
+                  <TableCell className="align-top">
                     <Badge variant="outline" className="text-[10px] uppercase">
                       {row.category ?? "—"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="align-top">
+                    <div className="space-y-1 text-[11px] text-muted-foreground max-w-[260px]">
+                      <div>
+                        <span className="font-semibold text-foreground/80">Contexto:</span>{" "}
+                        {row.ai_context ?? "—"}
+                      </div>
+                      <div>
+                        <span className="font-semibold text-foreground/80">Objetivo:</span>{" "}
+                        {row.ai_objective ?? "—"}
+                      </div>
+                      <div>
+                        <span className="font-semibold text-foreground/80">Tom:</span>{" "}
+                        {row.ai_tone ?? "—"}
+                      </div>
+                    </div>
+                  </TableCell>
+
                   <TableCell>
                     <Switch
                       checked={row.is_active}
