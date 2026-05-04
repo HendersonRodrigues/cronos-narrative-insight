@@ -46,45 +46,45 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
   const chartData = useMemo(() => {
     if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
-    const now = new Date();
     const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
+    const firstDateInDB = new Date(fullHistory[0].date);
 
-    // 1. Filtro de segurança contra dados futuros (Ancoragem no presente)
-    const pastData = fullHistory.filter(p => new Date(p.date) <= now);
-    if (pastData.length === 0) return { series: [], info: null };
-    
-    const endDate = new Date(pastData[pastData.length - 1].date);
-    const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - daysLimit);
+    // Usar a data atual como referência para o fim do período
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
 
+    // Calcular intervalo de datas baseado no período selecionado
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - daysLimit);
+
+    // Filtrar dados dentro do período
     const filtered = fullHistory.filter(p => {
       const d = new Date(p.date);
-      return d >= startDate && d <= endDate;
+      return d >= startDate && d <= now;
     });
 
-    // 2. Verificação de dados limitados
-    const firstDateInDB = new Date(fullHistory[0].date);
+    // Se não há dados no período, usar todos os dados disponíveis
+    const series = (filtered.length > 0 ? filtered : fullHistory)
+      .map(p => ({
+        date: p.date,
+        label: formatDateBR(p.date),
+        value: Number(p.value)
+      }));
+
+    // Verificação: se o primeiro registro do DB está depois da data de início do período
+    // significa que não temos dados completos para esse período
     const hasFullPeriod = firstDateInDB <= startDate;
 
-    // 3. Downsampling dinâmico (Max 150 pontos para fluidez)
-    const totalPoints = filtered.length;
-    const maxPoints = 150;
-    const step = totalPoints > maxPoints ? Math.ceil(totalPoints / maxPoints) : 1;
-
-    const series = filtered
-      .filter((_, i) => i % step === 0 || i === totalPoints - 1)
-      .map(p => ({ 
-        date: p.date, 
-        label: formatDateBR(p.date), 
-        value: Number(p.value) 
-      }));
+    // Calcular anos de dados disponíveis
+    const endDate = new Date(fullHistory[fullHistory.length - 1].date);
+    const totalYears = ((endDate.getTime() - firstDateInDB.getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1);
 
     return {
       series,
-      info: { 
-        hasFullPeriod, 
-        firstDate: formatDateBR(fullHistory[0].date),
-        totalYears: ((endDate.getTime() - firstDateInDB.getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1)
+      info: {
+        hasFullPeriod,
+        firstDate: formatDateBR(firstDateInDB),
+        totalYears
       }
     };
   }, [fullHistory, period]);
