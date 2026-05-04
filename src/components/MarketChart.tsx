@@ -104,7 +104,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
       series,
       info: {
         hasFullPeriod,
-        firstDate: formatDateBR(firstDateInDB),
+        firstDate: formatDateBR(fullHistory[0].date),
         totalYears,
       },
     };
