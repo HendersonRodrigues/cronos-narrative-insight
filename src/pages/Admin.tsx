@@ -421,6 +421,9 @@ function QuestionsManager() {
   const { toast } = useToast();
   const [text, setText] = useState("");
   const [category, setCategory] = useState("");
+  const [aiContext, setAiContext] = useState("");
+  const [aiObjective, setAiObjective] = useState("");
+  const [aiTone, setAiTone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -434,9 +437,15 @@ function QuestionsManager() {
         category: category.trim() || null,
         is_active: true,
         order_index: 0,
+        ai_context: aiContext.trim() || null,
+        ai_objective: aiObjective.trim() || null,
+        ai_tone: aiTone.trim() || null,
       });
       setText("");
       setCategory("");
+      setAiContext("");
+      setAiObjective("");
+      setAiTone("");
       toast({ title: "Pergunta adicionada com sucesso." });
     } catch (e) {
       toast({
@@ -470,39 +479,77 @@ function QuestionsManager() {
       <CardHeader>
         <CardTitle>Perguntas do app</CardTitle>
         <CardDescription>
-          Gerencie as perguntas dinâmicas exibidas para os usuários. Desative
-          temporariamente com o switch ou remova permanentemente.
+          Gerencie as perguntas dinâmicas exibidas para os usuários. Os campos de
+          metadados (Contexto, Objetivo e Tom) são enviados como instruções
+          adicionais para a IA de análise.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleAdd} className="grid gap-3 md:grid-cols-[1fr_200px_auto]">
-          <div className="space-y-1.5">
-            <Label htmlFor="q-text">Texto da pergunta</Label>
-            <Input
-              id="q-text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Ex.: Qual seu objetivo de investimento?"
-              required
-            />
+        <form onSubmit={handleAdd} className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-[1fr_200px]">
+            <div className="space-y-1.5">
+              <Label htmlFor="q-text">Texto da pergunta</Label>
+              <Input
+                id="q-text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Ex.: Qual seu objetivo de investimento?"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="q-cat">Categoria</Label>
+              <Input
+                id="q-cat"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Opcional"
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="q-cat">Categoria</Label>
-            <Input
-              id="q-cat"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="Opcional"
-            />
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="q-ai-context">Contexto para IA</Label>
+              <Textarea
+                id="q-ai-context"
+                value={aiContext}
+                onChange={(e) => setAiContext(e.target.value)}
+                placeholder="Ex.: Usuário iniciante avaliando renda fixa pós-Selic alta."
+                rows={2}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="q-ai-objective">Objetivo da análise</Label>
+              <Textarea
+                id="q-ai-objective"
+                value={aiObjective}
+                onChange={(e) => setAiObjective(e.target.value)}
+                placeholder="Ex.: Comparar CDB, Tesouro e LCI com horizonte de 2 anos."
+                rows={2}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="q-ai-tone">Tom da resposta</Label>
+              <Input
+                id="q-ai-tone"
+                value={aiTone}
+                onChange={(e) => setAiTone(e.target.value)}
+                placeholder="Ex.: didático, técnico, executivo"
+              />
+            </div>
           </div>
-          <Button type="submit" disabled={submitting} className="self-end gap-1.5">
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            Adicionar
-          </Button>
+
+          <div className="flex justify-end">
+            <Button type="submit" disabled={submitting} className="gap-1.5">
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Adicionar
+            </Button>
+          </div>
         </form>
 
         {loading ? (
