@@ -59,6 +59,9 @@ export interface AppQuestionRow {
   status: ContentStatus | string;
   category: string | null;
   order_index: number | null;
+  ai_context: string | null;
+  ai_objective: string | null;
+  ai_tone: string | null;
   created_at: string;
   updated_at: string | null;
 }
