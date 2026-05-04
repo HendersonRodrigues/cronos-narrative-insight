@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateBR, formatValue, getAssetMeta } from "@/lib/format";
 import type { AssetSnapshot } from "@/hooks/useMarketSnapshot";
 import { useAssetHistory } from "@/hooks/useMarketFeed"; // Importando o novo hook
-import { TrendingUp, AlertCircle, Loader2 } from "lucide-react";
+import { TrendingUp, CircleAlert as AlertCircle, Loader as Loader2 } from "lucide-react";
 
 interface MarketChartProps {
   snapshots: Record<string, AssetSnapshot>;
@@ -24,7 +24,7 @@ interface MarketChartProps {
 
 type PeriodKey = "M" | "6M" | "Y" | "3Y" | "5Y" | "10Y";
 const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
-  { key: "M", label: "1M", days: 30 },
+  { key: "M", label: "1M", days: 28 },
   { key: "6M", label: "6M", days: 180 },
   { key: "Y", label: "1Y", days: 365 },
   { key: "3Y", label: "3Y", days: 365 * 3 },
