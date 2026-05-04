@@ -84,7 +84,7 @@ export default function ConsultoriaInteligente({ profile, isLoading, onSubmit }:
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />
         <h3 className="font-display text-lg font-semibold tracking-tight">
-          Consultoria Inteligente
+          Consultoria Histórica Inteligente
         </h3>
         <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           perfil · <span className="text-primary">{profile}</span>
