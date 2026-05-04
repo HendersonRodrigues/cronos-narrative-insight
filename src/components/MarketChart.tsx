@@ -48,44 +48,65 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
 
     const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
     const firstDateInDB = new Date(fullHistory[0].date);
+    const lastDateInDB = new Date(fullHistory[fullHistory.length - 1].date);
 
-    // Usar a data atual como referência para o fim do período
+    // Ancorar o fim do período no MIN(hoje, última data disponível).
+    // Isso evita que ativos com cadência baixa (mensal/trimestral) ou com
+    // último dado defasado caiam no fallback "tudo" quando o usuário escolhe 1M.
     const now = new Date();
     now.setHours(23, 59, 59, 999);
+    const anchorEnd = lastDateInDB < now ? lastDateInDB : now;
 
-    // Calcular intervalo de datas baseado no período selecionado
-    const startDate = new Date(now);
+    const startDate = new Date(anchorEnd);
     startDate.setDate(startDate.getDate() - daysLimit);
 
-    // Filtrar dados dentro do período
-    const filtered = fullHistory.filter(p => {
+    // Filtrar dados dentro do período (em relação à âncora)
+    let filtered = fullHistory.filter((p) => {
       const d = new Date(p.date);
-      return d >= startDate && d <= now;
+      return d >= startDate && d <= anchorEnd;
     });
 
-    // Se não há dados no período, usar todos os dados disponíveis
-    const series = (filtered.length > 0 ? filtered : fullHistory)
-      .map(p => ({
-        date: p.date,
-        label: formatDateBR(p.date),
-        value: Number(p.value)
-      }));
+    // Garantia mínima: se mesmo assim nada caiu no recorte (ex.: ativo
+    // trimestral em janela de 1M), pega os últimos N pontos disponíveis,
+    // proporcionais ao período — NUNCA o histórico inteiro.
+    if (filtered.length < 2) {
+      const minPointsByPeriod: Record<PeriodKey, number> = {
+        M: 2, "6M": 4, Y: 6, "3Y": 12, "5Y": 20, "10Y": 40,
+      };
+      const n = minPointsByPeriod[period];
+      filtered = fullHistory.slice(-n);
+    }
 
-    // Verificação: se o primeiro registro do DB está depois da data de início do período
-    // significa que não temos dados completos para esse período
+    // Downsampling: limitar a ~180 pontos para manter o gráfico fluido em 5Y/10Y
+    const MAX_POINTS = 180;
+    let sampled = filtered;
+    if (filtered.length > MAX_POINTS) {
+      const step = Math.ceil(filtered.length / MAX_POINTS);
+      sampled = filtered.filter((_, i) => i % step === 0);
+      // garante o último ponto real (preserva valor atual)
+      const last = filtered[filtered.length - 1];
+      if (sampled[sampled.length - 1] !== last) sampled.push(last);
+    }
+
+    const series = sampled.map((p) => ({
+      date: p.date,
+      label: formatDateBR(p.date),
+      value: Number(p.value),
+    }));
+
     const hasFullPeriod = firstDateInDB <= startDate;
-
-    // Calcular anos de dados disponíveis
-    const endDate = new Date(fullHistory[fullHistory.length - 1].date);
-    const totalYears = ((endDate.getTime() - firstDateInDB.getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1);
+    const totalYears = (
+      (lastDateInDB.getTime() - firstDateInDB.getTime()) /
+      (1000 * 60 * 60 * 24 * 365.25)
+    ).toFixed(1);
 
     return {
       series,
       info: {
         hasFullPeriod,
         firstDate: formatDateBR(firstDateInDB),
-        totalYears
-      }
+        totalYears,
+      },
     };
   }, [fullHistory, period]);
 
