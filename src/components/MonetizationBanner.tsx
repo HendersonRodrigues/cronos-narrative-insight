@@ -1,10 +1,28 @@
 import { ArrowUpRight, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function MonetizationBanner() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Espelha exatamente o filtro usado em /oportunidades:
+  // só mostra o card no Index se houver oportunidades ativas publicadas.
+  const { data: count } = useQuery({
+    queryKey: ["opportunities_active_count"],
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      if (!supabase) return 0;
+      const { count, error } = await supabase
+        .from("investment_opportunities")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const handleClick = (e: React.MouseEvent) => {
     if (!user) {
@@ -12,6 +30,8 @@ export default function MonetizationBanner() {
       navigate("/auth?redirect=/oportunidades");
     }
   };
+
+  if (!count || count === 0) return null;
 
   return (
     <Link
