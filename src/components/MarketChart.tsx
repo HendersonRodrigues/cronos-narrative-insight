@@ -49,6 +49,20 @@ const toIsoDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDate = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(12, 0, 0, 0);
+  return normalized;
+};
+
+const formatAxisTick = (timestamp: number, period: PeriodKey) => {
+  const date = new Date(timestamp);
+  if (period === "M") {
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }
+  return date.toLocaleDateString("pt-BR", { month: "2-digit", year: "2-digit" });
+};
+
 export default function MarketChart({ snapshots, isLoading: loadingSnapshots, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
   const [selected, setSelected] = useState(defaultAsset || available[0] || "selic");
@@ -71,8 +85,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     // Ancorar o fim do período no MIN(hoje, última data disponível).
     // Isso evita que ativos com cadência baixa (mensal/trimestral) ou com
     // último dado defasado caiam no fallback "tudo" quando o usuário escolhe 1M.
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
+    const now = normalizeDate(new Date());
     const anchorEnd = isSelic && lastDateInDB <= now ? now : lastDateInDB < now ? lastDateInDB : now;
 
     const startDate = new Date(anchorEnd);
@@ -125,6 +138,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
 
     const series = sampled.map((p) => ({
       date: p.date,
+      timestamp: toDate(p.date).getTime(),
       label: formatDateBR(p.date),
       value: Number(p.value),
     }));
@@ -266,16 +280,15 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
                 </defs>
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
-                  dataKey="label"
+                  dataKey="timestamp"
+                  type="number"
+                  scale="time"
+                  domain={["dataMin", "dataMax"]}
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
                   tickLine={false}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                   minTickGap={45}
-                  tickFormatter={(value) => {
-                    if (period === "M") return value; 
-                    const parts = value.split('/');
-                    return parts.length === 3 ? `${parts[1]}/${parts[2]}` : value;
-                  }}
+                  tickFormatter={(value) => formatAxisTick(Number(value), period)}
                 />
                 <YAxis
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
@@ -292,6 +305,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
                     fontSize: 12,
                   }}
                   labelStyle={{ color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: 10 }}
+                  labelFormatter={(value) => formatDateBR(toIsoDate(new Date(Number(value))))}
                   formatter={(val: number) => [active ? formatValue(active, val) : val, meta?.short ?? ""]}
                 />
                 <Line
