@@ -280,16 +280,15 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
                 </defs>
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
-                  dataKey="label"
+                  dataKey="timestamp"
+                  type="number"
+                  scale="time"
+                  domain={["dataMin", "dataMax"]}
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
                   tickLine={false}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                   minTickGap={45}
-                  tickFormatter={(value) => {
-                    if (period === "M") return value; 
-                    const parts = value.split('/');
-                    return parts.length === 3 ? `${parts[1]}/${parts[2]}` : value;
-                  }}
+                  tickFormatter={(value) => formatAxisTick(Number(value), period)}
                 />
                 <YAxis
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
@@ -306,6 +305,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
                     fontSize: 12,
                   }}
                   labelStyle={{ color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: 10 }}
+                  labelFormatter={(value) => formatDateBR(toIsoDate(new Date(Number(value))))}
                   formatter={(val: number) => [active ? formatValue(active, val) : val, meta?.short ?? ""]}
                 />
                 <Line
