@@ -32,21 +32,6 @@ const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
   { key: "10Y", label: "10Y", days: 365 * 10 },
 ];
 
-useEffect(() => {
-  if (available.length > 0 && !selected) {
-    setSelected(defaultAsset || available[0]);
-  }
-}, [available, defaultAsset, selected]);
-
-const MIN_POINTS_BY_PERIOD: Record<PeriodKey, number> = {
-  M: 2,
-  "6M": 3,
-  Y: 4,
-  "3Y": 8,
-  "5Y": 12,
-  "10Y": 18,
-};
-
 const toDate = (iso: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso);
 const toIsoDate = (date: Date) => {
   const year = date.getFullYear();
