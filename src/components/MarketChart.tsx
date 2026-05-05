@@ -32,6 +32,17 @@ const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
   { key: "10Y", label: "10Y", days: 365 * 10 },
 ];
 
+const MIN_POINTS_BY_PERIOD: Record<PeriodKey, number> = {
+  M: 2,
+  "6M": 3,
+  Y: 4,
+  "3Y": 8,
+  "5Y": 12,
+  "10Y": 18,
+};
+
+const toDate = (iso: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso);
+
 export default function MarketChart({ snapshots, isLoading: loadingSnapshots, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
   const [selected, setSelected] = useState(defaultAsset || available[0] || "selic");
@@ -47,8 +58,8 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
     const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
-    const firstDateInDB = new Date(fullHistory[0].date);
-    const lastDateInDB = new Date(fullHistory[fullHistory.length - 1].date);
+    const firstDateInDB = toDate(fullHistory[0].date);
+    const lastDateInDB = toDate(fullHistory[fullHistory.length - 1].date);
 
     // Ancorar o fim do período no MIN(hoje, última data disponível).
     // Isso evita que ativos com cadência baixa (mensal/trimestral) ou com
@@ -66,15 +77,21 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
       return d >= startDate && d <= anchorEnd;
     });
 
-    // Garantia mínima: se mesmo assim nada caiu no recorte (ex.: ativo
-    // trimestral em janela de 1M), pega os últimos N pontos disponíveis,
-    // proporcionais ao período — NUNCA o histórico inteiro.
-    if (filtered.length < 2) {
-      const minPointsByPeriod: Record<PeriodKey, number> = {
-        M: 2, "6M": 4, Y: 6, "3Y": 12, "5Y": 20, "10Y": 40,
-      };
-      const n = minPointsByPeriod[period];
-      filtered = fullHistory.slice(-n);
+    // Selic pode ficar estável por meses; para janelas curtas, inclui o último
+    // ponto anterior ao período para desenhar a linha sem fazer todos os prazos
+    // caírem no mesmo fallback visual.
+    const previousPoint = [...fullHistory].reverse().find((p) => toDate(p.date) < startDate);
+    if (previousPoint && (filtered.length === 0 || filtered[0].date !== previousPoint.date)) {
+      filtered = [previousPoint, ...filtered];
+    }
+
+    // Garantia mínima para séries esparsas: expande a janela para trás só até
+    // completar o mínimo do período escolhido, nunca para o histórico inteiro.
+    const minPoints = MIN_POINTS_BY_PERIOD[period];
+    if (filtered.length < minPoints) {
+      const endIndex = fullHistory.findIndex((p) => p.date === filtered[filtered.length - 1]?.date);
+      const sliceEnd = endIndex >= 0 ? endIndex + 1 : fullHistory.length;
+      filtered = fullHistory.slice(Math.max(0, sliceEnd - minPoints), sliceEnd);
     }
 
     // Downsampling: limitar a ~180 pontos para manter o gráfico fluido em 5Y/10Y
