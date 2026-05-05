@@ -78,86 +78,73 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
     const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
-    const isSelic = active === "selic";
-    const firstDateInDB = toDate(fullHistory[0].date);
+    const isSelic = selected === "selic";
+    
+    // 1. ÂNCORA REAL: Na tese, "agora" é Maio de 2026. 
+    // Precisamos garantir que o gráfico olhe para o presente.
+    const now = normalizeDate(new Date()); 
     const lastDateInDB = toDate(fullHistory[fullHistory.length - 1].date);
-
-    // Ancorar o fim do período no MIN(hoje, última data disponível).
-    // Isso evita que ativos com cadência baixa (mensal/trimestral) ou com
-    // último dado defasado caiam no fallback "tudo" quando o usuário escolhe 1M.
-    const now = normalizeDate(new Date());
-    const anchorEnd = isSelic && lastDateInDB <= now ? now : lastDateInDB < now ? lastDateInDB : now;
+    
+    // Se a última data do banco é anterior a hoje, usamos HOJE como fim
+    // para que o gráfico projete a linha até o presente.
+    const anchorEnd = lastDateInDB > now ? lastDateInDB : now;
 
     const startDate = new Date(anchorEnd);
     startDate.setDate(startDate.getDate() - daysLimit);
 
-    // Filtrar dados dentro do período (em relação à âncora)
+    // 2. FILTRAGEM
     let filtered = fullHistory.filter((p) => {
-      const d = new Date(p.date);
+      const d = toDate(p.date);
       return d >= startDate && d <= anchorEnd;
     });
 
-    // Selic pode ficar estável por meses; para janelas curtas, inclui o último
-    // ponto anterior ao período para desenhar a linha sem fazer todos os prazos
-    // caírem no mesmo fallback visual.
-    const previousPoint = [...fullHistory].reverse().find((p) => toDate(p.date) < startDate);
-    const lastKnownPoint = [...fullHistory].reverse().find((p) => toDate(p.date) <= anchorEnd);
-    if (isSelic && lastKnownPoint) {
-      const startPoint = previousPoint ?? filtered[0] ?? lastKnownPoint;
-      if (filtered.length === 0 || toDate(filtered[0].date) > startDate) {
-        filtered = [{ ...startPoint, date: toIsoDate(startDate) }, ...filtered];
+    // 3. TRATAMENTO ESPECIAL SELIC (Degraus)
+    if (isSelic) {
+      const lastKnownPoint = fullHistory[fullHistory.length - 1];
+      
+      // Se não há dados no período (ex: 1M sem mudança), 
+      // criamos uma linha reta do valor mais recente
+      if (filtered.length === 0 && lastKnownPoint) {
+        filtered = [
+          { ...lastKnownPoint, date: toIsoDate(startDate) },
+          { ...lastKnownPoint, date: toIsoDate(anchorEnd) }
+        ];
+      } else if (filtered.length > 0) {
+        // Garante que a linha comece exatamente na borda esquerda do gráfico
+        const first = filtered[0];
+        if (toDate(first.date) > startDate) {
+           // Busca o ponto imediatamente anterior ao início para manter o valor correto
+           const prev = [...fullHistory].reverse().find(p => toDate(p.date) < startDate) || first;
+           filtered = [{ ...prev, date: toIsoDate(startDate) }, ...filtered];
+        }
+        // Garante que a linha vá até a borda direita (Hoje)
+        const last = filtered[filtered.length - 1];
+        if (toDate(last.date) < anchorEnd) {
+          filtered = [...filtered, { ...last, date: toIsoDate(anchorEnd) }];
+        }
       }
-
-      const lastFiltered = filtered[filtered.length - 1];
-      if (lastFiltered && toDate(lastFiltered.date) < anchorEnd) {
-        filtered = [...filtered, { ...lastKnownPoint, date: toIsoDate(anchorEnd) }];
-      }
-    } else if (previousPoint && (filtered.length === 0 || filtered[0].date !== previousPoint.date)) {
-      filtered = [previousPoint, ...filtered];
     }
 
-    // Garantia mínima para séries esparsas: expande a janela para trás só até
-    // completar o mínimo do período escolhido, nunca para o histórico inteiro.
-    const minPoints = isSelic ? 2 : MIN_POINTS_BY_PERIOD[period];
-    if (filtered.length < minPoints) {
-      const endIndex = fullHistory.findIndex((p) => p.date === filtered[filtered.length - 1]?.date);
-      const sliceEnd = endIndex >= 0 ? endIndex + 1 : fullHistory.length;
-      filtered = fullHistory.slice(Math.max(0, sliceEnd - minPoints), sliceEnd);
-    }
+    // 4. REMOÇÃO DO FALLBACK AGRESSIVO
+    // Remova ou suavize a parte que faz o slice de 'minPoints' 
+    // se isso estiver puxando dados de anos atrás para períodos de 1M.
 
-    // Downsampling: limitar a ~180 pontos para manter o gráfico fluido em 5Y/10Y
-    const MAX_POINTS = 180;
-    let sampled = filtered;
-    if (filtered.length > MAX_POINTS) {
-      const step = Math.ceil(filtered.length / MAX_POINTS);
-      sampled = filtered.filter((_, i) => i % step === 0);
-      // garante o último ponto real (preserva valor atual)
-      const last = filtered[filtered.length - 1];
-      if (sampled[sampled.length - 1] !== last) sampled.push(last);
-    }
-
-    const series = sampled.map((p) => ({
+    const series = filtered.map((p) => ({
       date: p.date,
       timestamp: toDate(p.date).getTime(),
       label: formatDateBR(p.date),
       value: Number(p.value),
     }));
 
-    const hasFullPeriod = firstDateInDB <= startDate;
-    const totalYears = (
-      (lastDateInDB.getTime() - firstDateInDB.getTime()) /
-      (1000 * 60 * 60 * 24 * 365.25)
-    ).toFixed(1);
-
     return {
       series,
       info: {
-        hasFullPeriod,
+        hasFullPeriod: toDate(fullHistory[0].date) <= startDate,
         firstDate: formatDateBR(fullHistory[0].date),
-        totalYears,
+        totalYears: ((lastDateInDB.getTime() - toDate(fullHistory[0].date).getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1),
       },
     };
-  }, [active, fullHistory, period]);
+  }, [selected, fullHistory, period]);
 
   if (loadingSnapshots || (loadingHistory && chartData.series.length === 0)) {
     return (
