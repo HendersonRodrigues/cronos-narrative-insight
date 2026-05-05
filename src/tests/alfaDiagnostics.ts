@@ -216,5 +216,59 @@ export const runAlfaDiagnostics = async (): Promise<TestResult[]> => {
     // Ignora silenciosamente se a tabela ainda não existir
   }
 
+  // 10. Verificação da Tabela de Snapshots (Caminho Crítico do Gráfico)
+  try {
+    const { data, error } = await supabase
+      .from("market_analytics_snapshots")
+      .select("asset_id, period_group, last_updated")
+      .limit(5);
+  
+    if (error) {
+      results.push({
+        name: "Tabela de Snapshots (RLS)",
+        status: "fail",
+        message: `Erro 403 ou Permissão: ${error.message}`,
+      });
+    } else if (!data || data.length === 0) {
+      results.push({
+        name: "Tabela de Snapshots (Conteúdo)",
+        status: "warning",
+        message: "Tabela acessível, mas está VAZIA. A Edge Function não populou os dados.",
+      });
+    } else {
+      results.push({
+        name: "Tabela de Snapshots (OK)",
+        status: "pass",
+        message: `${data.length} snapshots encontrados (Ex: ${data[0].asset_id}).`,
+      });
+    }
+  } catch (err) {
+    results.push({
+      name: "Tabela de Snapshots",
+      status: "fail",
+      message: `Falha catastrófica: ${(err as Error).message}`,
+    });
+  }
+  
+  // 11. Teste de Consistência de IDs
+  const expectedIds = ["selic", "ibov", "ipca"];
+  try {
+    const { data } = await supabase
+      .from("market_analytics_snapshots")
+      .select("asset_id")
+      .in("asset_id", expectedIds);
+    
+    const foundIds = data?.map(d => d.asset_id) || [];
+    const missing = expectedIds.filter(id => !foundIds.includes(id));
+  
+    results.push({
+      name: "Consistência de Ativos",
+      status: missing.length === 0 ? "pass" : "warning",
+      message: missing.length === 0 
+        ? "Todos os ativos principais têm snapshots." 
+        : `Faltando snapshots para: ${missing.join(", ")}`,
+    });
+  } catch (e) {}
+
   return results;
 };
