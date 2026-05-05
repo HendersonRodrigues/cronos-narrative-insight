@@ -74,77 +74,60 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
   const active = selected;
   const meta = active ? getAssetMeta(active) : null;
 
-  const chartData = useMemo(() => {
-    if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
+  // Dentro do useMemo do MarketChart.tsx
 
-    const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
-    const isSelic = selected === "selic";
-    
-    // 1. ÂNCORA REAL: Na tese, "agora" é Maio de 2026. 
-    // Precisamos garantir que o gráfico olhe para o presente.
-    const now = normalizeDate(new Date()); 
-    const lastDateInDB = toDate(fullHistory[fullHistory.length - 1].date);
-    
-    // Se a última data do banco é anterior a hoje, usamos HOJE como fim
-    // para que o gráfico projete a linha até o presente.
-    const anchorEnd = lastDateInDB > now ? lastDateInDB : now;
+const chartData = useMemo(() => {
+  if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
-    const startDate = new Date(anchorEnd);
-    startDate.setDate(startDate.getDate() - daysLimit);
+  const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
+  
+  // ÂNCORA CRÍTICA: Forçamos o gráfico a terminar HOJE (04/05/2026)
+  const anchorEnd = normalizeDate(new Date()); 
+  const startDate = new Date(anchorEnd);
+  startDate.setDate(startDate.getDate() - daysLimit);
 
-    // 2. FILTRAGEM
-    let filtered = fullHistory.filter((p) => {
-      const d = toDate(p.date);
-      return d >= startDate && d <= anchorEnd;
-    });
+  // Filtramos o histórico total
+  let periodData = fullHistory.filter((p) => {
+    const d = toDate(p.date);
+    return d >= startDate && d <= anchorEnd;
+  });
 
-    // 3. TRATAMENTO ESPECIAL SELIC (Degraus)
-    if (isSelic) {
-      const lastKnownPoint = fullHistory[fullHistory.length - 1];
-      
-      // Se não há dados no período (ex: 1M sem mudança), 
-      // criamos uma linha reta do valor mais recente
-      if (filtered.length === 0 && lastKnownPoint) {
-        filtered = [
-          { ...lastKnownPoint, date: toIsoDate(startDate) },
-          { ...lastKnownPoint, date: toIsoDate(anchorEnd) }
-        ];
-      } else if (filtered.length > 0) {
-        // Garante que a linha comece exatamente na borda esquerda do gráfico
-        const first = filtered[0];
-        if (toDate(first.date) > startDate) {
-           // Busca o ponto imediatamente anterior ao início para manter o valor correto
-           const prev = [...fullHistory].reverse().find(p => toDate(p.date) < startDate) || first;
-           filtered = [{ ...prev, date: toIsoDate(startDate) }, ...filtered];
-        }
-        // Garante que a linha vá até a borda direita (Hoje)
-        const last = filtered[filtered.length - 1];
-        if (toDate(last.date) < anchorEnd) {
-          filtered = [...filtered, { ...last, date: toIsoDate(anchorEnd) }];
-        }
-      }
+  // LOGICA DE PREENCHIMENTO (Para Selic/IPCA não ficarem vazios em 1M)
+  if (periodData.length < 2) {
+    const lastPoint = [...fullHistory].reverse().find(p => toDate(p.date) <= anchorEnd);
+    if (lastPoint) {
+      // Se não tem dados no período, desenha uma linha reta do último valor conhecido
+      periodData = [
+        { ...lastPoint, date: toIsoDate(startDate) },
+        { ...lastPoint, date: toIsoDate(anchorEnd) }
+      ];
     }
+  } else {
+    // Garante que a linha encoste nas bordas do gráfico
+    const first = periodData[0];
+    const last = periodData[periodData.length - 1];
+    
+    if (toDate(first.date) > startDate) {
+      const prev = [...fullHistory].reverse().find(p => toDate(p.date) < startDate) || first;
+      periodData.unshift({ ...prev, date: toIsoDate(startDate) });
+    }
+    if (toDate(last.date) < anchorEnd) {
+      periodData.push({ ...last, date: toIsoDate(anchorEnd) });
+    }
+  }
 
-    // 4. REMOÇÃO DO FALLBACK AGRESSIVO
-    // Remova ou suavize a parte que faz o slice de 'minPoints' 
-    // se isso estiver puxando dados de anos atrás para períodos de 1M.
+  // Downsampling para performance (apenas se houver muitos pontos)
+  // ... (mantenha sua lógica de sampled se desejar)
 
-    const series = filtered.map((p) => ({
-      date: p.date,
+  return {
+    series: periodData.map(p => ({
       timestamp: toDate(p.date).getTime(),
-      label: formatDateBR(p.date),
       value: Number(p.value),
-    }));
-
-    return {
-      series,
-      info: {
-        hasFullPeriod: toDate(fullHistory[0].date) <= startDate,
-        firstDate: formatDateBR(fullHistory[0].date),
-        totalYears: ((lastDateInDB.getTime() - toDate(fullHistory[0].date).getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1),
-      },
-    };
-  }, [selected, fullHistory, period]);
+      label: formatDateBR(p.date)
+    })),
+    info: { hasFullPeriod: toDate(fullHistory[0].date) <= startDate }
+  };
+}, [selected, fullHistory, period]);
 
   if (loadingSnapshots || (loadingHistory && chartData.series.length === 0)) {
     return (
