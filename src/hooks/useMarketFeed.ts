@@ -11,35 +11,29 @@ import {
  * Traz apenas os registros mais recentes de todos os ativos para alimentar
  * os mini-cards de preço e variações na Home.
  */
-async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
-  if (!supabase) throw new Error("Supabase não configurado");
-  
-  // Buscamos um limite seguro para garantir que pegamos os últimos pontos 
-  // de todos os ativos sem sobrecarregar o buffer inicial.
+async function fetchAssetHistory(assetId: string): Promise<MarketDataPoint[]> {
+  if (!supabase || !assetId) return [];
+
   const { data, error } = await supabase
     .from("market_data")
     .select("*")
-    .order("date", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(1500); 
+    .eq("asset_id", assetId)
+    .gte("date", HISTORY_START_DATE)
+    .order("date", { ascending: true });
 
-  if (error) {
-    void reportIntegrationError("market_data", error, {
-      status_code: (error as { status?: number }).status ?? null,
-      context: { hint: "fetch market feed" },
-    });
-    throw error;
+  if (error) throw error;
+  const allData = (data as MarketDataPoint[] | null) ?? [];
+
+  // CORREÇÃO SELIC: Não agregue por mês! 
+  // O gráfico precisa de todos os pontos onde a taxa mudou para desenhar o degrau.
+  // Só filtramos duplicados na mesma data.
+  if (assetId === "selic") {
+    return allData.filter((point, index, self) => 
+      index === 0 || point.value !== self[index - 1].value || point.date !== self[index - 1].date
+    );
   }
 
-  const rows = (data as MarketDataPoint[] | null) ?? [];
-  if (rows.length > 0) {
-    void logIntegrationEvent({
-      service_name: "market_data",
-      status: "ok",
-      context: { rows: rows.length },
-    });
-  }
-  return rows;
+  return allData;
 }
 
 const HISTORY_START_DATE = "2015-01-01";
