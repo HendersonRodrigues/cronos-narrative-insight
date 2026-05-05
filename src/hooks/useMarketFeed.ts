@@ -42,27 +42,24 @@ async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
   return rows;
 }
 
+const HISTORY_START_DATE = "2015-01-01";
+
 /**
  * BUSCA 2: Histórico Profundo por Ativo (Lazy Loading)
- * Traz o histórico de um ativo específico sob demanda.
- * - Para Selic: filtra últimos 10 anos (desde 2016) e agrega por mês
- * - Para outros ativos: traz histórico completo com filtro temporal
+ * Traz o histórico de um ativo específico sob demanda desde 2015.
+ * - Para Selic diária muito densa: agrega por mês para preservar fluidez
+ * - Para séries esparsas: preserva todos os pontos reais
  * Usado exclusivamente pelo MarketChart para análise de longo prazo.
  */
 async function fetchAssetHistory(assetId: string): Promise<MarketDataPoint[]> {
   if (!supabase) throw new Error("Supabase não configurado");
   if (!assetId) return [];
 
-  // Definir data de corte: 10 anos atrás (desde 2016)
-  const tenYearsAgo = new Date();
-  tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-  const cutoffDate = tenYearsAgo.toISOString().split("T")[0]; // YYYY-MM-DD
-
   const { data, error } = await supabase
     .from("market_data")
     .select("*")
     .eq("asset_id", assetId)
-    .gte("date", cutoffDate) // Apenas últimos 10 anos
+    .gte("date", HISTORY_START_DATE)
     .order("date", { ascending: true });
 
   if (error) {
@@ -72,8 +69,9 @@ async function fetchAssetHistory(assetId: string): Promise<MarketDataPoint[]> {
 
   const allData = (data as MarketDataPoint[] | null) ?? [];
 
-  // Para Selic, agregar por mês (pegar valor do último dia do mês)
-  if (assetId === "selic" && allData.length > 0) {
+  // Se a Selic vier diária, agrega por mês; se vier apenas nos eventos de
+  // alteração da taxa, mantém todos os pontos para não distorcer períodos.
+  if (assetId === "selic" && allData.length > 240) {
     const monthlyData: Record<string, MarketDataPoint> = {};
 
     for (const point of allData) {
