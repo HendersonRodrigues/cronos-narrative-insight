@@ -32,6 +32,12 @@ const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
   { key: "10Y", label: "10Y", days: 365 * 10 },
 ];
 
+useEffect(() => {
+  if (available.length > 0 && !selected) {
+    setSelected(defaultAsset || available[0]);
+  }
+}, [available, defaultAsset, selected]);
+
 const MIN_POINTS_BY_PERIOD: Record<PeriodKey, number> = {
   M: 2,
   "6M": 3,
@@ -288,7 +294,7 @@ const chartData = useMemo(() => {
                   dataKey="timestamp"
                   type="number"
                   scale="time"
-                  domain={["dataMin", "dataMax"]}
+                  domain={[chartData.series[0]?.timestamp, chartData.series[chartData.series.length - 1]?.timestamp]}
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "monospace" }}
                   tickLine={false}
                   axisLine={{ stroke: "hsl(var(--border))" }}
@@ -314,7 +320,9 @@ const chartData = useMemo(() => {
                   formatter={(val: number) => [active ? formatValue(active, val) : val, meta?.short ?? ""]}
                 />
                 <Line
-                  type="monotone"
+                  // Se for Selic ou IPCA, usa 'stepAfter' para desenhar degraus. 
+                  // Caso contrário, usa 'monotone' para suavizar ações/moedas.
+                  type={(selected === "selic" || selected === "ipca") ? "stepAfter" : "monotone"}
                   dataKey="value"
                   stroke="url(#lineGradient)"
                   strokeWidth={2}
