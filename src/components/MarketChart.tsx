@@ -85,8 +85,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     // Ancorar o fim do período no MIN(hoje, última data disponível).
     // Isso evita que ativos com cadência baixa (mensal/trimestral) ou com
     // último dado defasado caiam no fallback "tudo" quando o usuário escolhe 1M.
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
+    const now = normalizeDate(new Date());
     const anchorEnd = isSelic && lastDateInDB <= now ? now : lastDateInDB < now ? lastDateInDB : now;
 
     const startDate = new Date(anchorEnd);
@@ -139,6 +138,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
 
     const series = sampled.map((p) => ({
       date: p.date,
+      timestamp: toDate(p.date).getTime(),
       label: formatDateBR(p.date),
       value: Number(p.value),
     }));
