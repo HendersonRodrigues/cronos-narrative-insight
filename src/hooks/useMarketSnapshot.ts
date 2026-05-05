@@ -58,6 +58,11 @@ export function useMarketSnapshot(selected: string, period: string) {
     const startDateStr = startDate.toISOString().split('T')[0];
     const hojeStr = now.toISOString().split('T')[0];
 
+    const rawPoints = query.data ?? []; // Garante que nunca seja null/undefined
+    if (rawPoints.length === 0) {
+      return { series: [], domain: [Date.now() - 86400000, Date.now()] };
+    }
+
     // Recorte do período dentro do snapshot
     let points = rawPoints.filter((p) => p.d >= startDateStr);
 
