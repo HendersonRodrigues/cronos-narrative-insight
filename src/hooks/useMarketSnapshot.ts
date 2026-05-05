@@ -94,7 +94,7 @@ export function useMarketSnapshot(selected: string, period: string) {
       return {
         timestamp: date.getTime(),
         value: Number(p.v || 0),
-        trend: Number(p.t ?? p.v || 0),
+        trend: Number((p.t ?? p.v) || 0),
         label: formatDateBR(p.d)
       };
     });
