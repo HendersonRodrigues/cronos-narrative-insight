@@ -49,6 +49,20 @@ const toIsoDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDate = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(12, 0, 0, 0);
+  return normalized;
+};
+
+const formatAxisTick = (timestamp: number, period: PeriodKey) => {
+  const date = new Date(timestamp);
+  if (period === "M") {
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }
+  return date.toLocaleDateString("pt-BR", { month: "2-digit", year: "2-digit" });
+};
+
 export default function MarketChart({ snapshots, isLoading: loadingSnapshots, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
   const [selected, setSelected] = useState(defaultAsset || available[0] || "selic");
