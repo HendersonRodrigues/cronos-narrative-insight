@@ -77,55 +77,90 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
   // Dentro do useMemo do MarketChart.tsx
 
 const chartData = useMemo(() => {
+  // Se não houver histórico, retornamos vazio imediatamente
   if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
-  const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
-  
-  // ÂNCORA CRÍTICA: Forçamos o gráfico a terminar HOJE (04/05/2026)
+  const isSelic = selected === "selic";
+  const isIPCA = selected === "ipca";
+  const periodMeta = PERIODS.find((p) => p.key === period);
+  const daysLimit = periodMeta?.days ?? 30;
+
+  // 1. ÂNCORA TEMPORAL (O "HOJE" DA TESE)
+  // Forçamos o gráfico a terminar sempre no dia 04/05/2026
   const anchorEnd = normalizeDate(new Date()); 
   const startDate = new Date(anchorEnd);
   startDate.setDate(startDate.getDate() - daysLimit);
 
-  // Filtramos o histórico total
-  let periodData = fullHistory.filter((p) => {
-    const d = toDate(p.date);
-    return d >= startDate && d <= anchorEnd;
-  });
+  // 2. FILTRAGEM INICIAL
+  // Pegamos apenas o que é igual ou anterior a hoje
+  const allPastData = fullHistory.filter((p) => toDate(p.date) <= anchorEnd);
 
-  // LOGICA DE PREENCHIMENTO (Para Selic/IPCA não ficarem vazios em 1M)
-  if (periodData.length < 2) {
-    const lastPoint = [...fullHistory].reverse().find(p => toDate(p.date) <= anchorEnd);
-    if (lastPoint) {
-      // Se não tem dados no período, desenha uma linha reta do último valor conhecido
-      periodData = [
-        { ...lastPoint, date: toIsoDate(startDate) },
-        { ...lastPoint, date: toIsoDate(anchorEnd) }
-      ];
+  // 3. IDENTIFICAÇÃO DE PONTOS DE BORDA (Crucial para Selic/IPCA)
+  // Encontramos o último ponto antes do início do gráfico para garantir continuidade
+  const lastPointBefore = [...allPastData]
+    .reverse()
+    .find((p) => toDate(p.date) < startDate);
+
+  // Filtramos os pontos que estão dentro da janela visível
+  let periodData = allPastData.filter((p) => toDate(p.date) >= startDate);
+
+  // 4. LÓGICA DE RECONSTRUÇÃO DE LINHA (RESOLVE O VAZIO)
+  if (isSelic || isIPCA) {
+    // Caso A: Não há nenhuma alteração no período selecionado (ex: 1M estável)
+    if (periodData.length === 0) {
+      const reference = lastPointBefore || allPastData[allPastData.length - 1];
+      if (reference) {
+        periodData = [
+          { ...reference, date: toIsoDate(startDate) },
+          { ...reference, date: toIsoDate(anchorEnd) }
+        ];
+      }
+    } 
+    // Caso B: Existem pontos, mas precisamos "esticar" a linha até as bordas
+    else {
+      // Estica até a borda esquerda (Início do período)
+      const firstActual = periodData[0];
+      if (toDate(firstActual.date) > startDate) {
+        const startEdge = lastPointBefore || firstActual;
+        periodData.unshift({ ...startEdge, date: toIsoDate(startDate) });
+      }
+
+      // Estica até a borda direita (Hoje)
+      const lastActual = periodData[periodData.length - 1];
+      if (toDate(lastActual.date) < anchorEnd) {
+        periodData.push({ ...lastActual, date: toIsoDate(anchorEnd) });
+      }
     }
   } else {
-    // Garante que a linha encoste nas bordas do gráfico
-    const first = periodData[0];
-    const last = periodData[periodData.length - 1];
-    
-    if (toDate(first.date) > startDate) {
-      const prev = [...fullHistory].reverse().find(p => toDate(p.date) < startDate) || first;
-      periodData.unshift({ ...prev, date: toIsoDate(startDate) });
-    }
-    if (toDate(last.date) < anchorEnd) {
-      periodData.push({ ...last, date: toIsoDate(anchorEnd) });
+    // Para ativos voláteis (IBOV/Dólar), apenas garantimos que o gráfico não fique vazio
+    if (periodData.length === 0 && allPastData.length > 0) {
+      // Fallback: se o período escolhido não tem dados, mostra os últimos 30 pontos
+      periodData = allPastData.slice(-30);
     }
   }
 
-  // Downsampling para performance (apenas se houver muitos pontos)
-  // ... (mantenha sua lógica de sampled se desejar)
+  // 5. FORMATAÇÃO FINAL PARA O RECHARTS
+  const series = periodData.map((p) => ({
+    date: p.date,
+    timestamp: toDate(p.date).getTime(),
+    label: formatDateBR(p.date),
+    value: Number(p.value),
+  }));
+
+  // 6. METADADOS DE CONTROLE
+  const firstDateInDB = toDate(fullHistory[0].date);
+  const totalYears = (
+    (anchorEnd.getTime() - firstDateInDB.getTime()) /
+    (1000 * 60 * 60 * 24 * 365.25)
+  ).toFixed(1);
 
   return {
-    series: periodData.map(p => ({
-      timestamp: toDate(p.date).getTime(),
-      value: Number(p.value),
-      label: formatDateBR(p.date)
-    })),
-    info: { hasFullPeriod: toDate(fullHistory[0].date) <= startDate }
+    series,
+    info: {
+      hasFullPeriod: firstDateInDB <= startDate,
+      firstDate: formatDateBR(fullHistory[0].date),
+      totalYears,
+    },
   };
 }, [selected, fullHistory, period]);
 
