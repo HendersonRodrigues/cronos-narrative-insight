@@ -42,6 +42,12 @@ const MIN_POINTS_BY_PERIOD: Record<PeriodKey, number> = {
 };
 
 const toDate = (iso: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso);
+const toIsoDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 export default function MarketChart({ snapshots, isLoading: loadingSnapshots, defaultAsset }: MarketChartProps) {
   const available = Object.keys(snapshots);
@@ -58,6 +64,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     if (!fullHistory || fullHistory.length === 0) return { series: [], info: null };
 
     const daysLimit = PERIODS.find((p) => p.key === period)?.days ?? 30;
+    const isSelic = active === "selic";
     const firstDateInDB = toDate(fullHistory[0].date);
     const lastDateInDB = toDate(fullHistory[fullHistory.length - 1].date);
 
@@ -66,7 +73,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     // último dado defasado caiam no fallback "tudo" quando o usuário escolhe 1M.
     const now = new Date();
     now.setHours(23, 59, 59, 999);
-    const anchorEnd = lastDateInDB < now ? lastDateInDB : now;
+    const anchorEnd = isSelic && lastDateInDB <= now ? now : lastDateInDB < now ? lastDateInDB : now;
 
     const startDate = new Date(anchorEnd);
     startDate.setDate(startDate.getDate() - daysLimit);
@@ -81,13 +88,24 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
     // ponto anterior ao período para desenhar a linha sem fazer todos os prazos
     // caírem no mesmo fallback visual.
     const previousPoint = [...fullHistory].reverse().find((p) => toDate(p.date) < startDate);
-    if (previousPoint && (filtered.length === 0 || filtered[0].date !== previousPoint.date)) {
+    const lastKnownPoint = [...fullHistory].reverse().find((p) => toDate(p.date) <= anchorEnd);
+    if (isSelic && lastKnownPoint) {
+      const startPoint = previousPoint ?? filtered[0] ?? lastKnownPoint;
+      if (filtered.length === 0 || toDate(filtered[0].date) > startDate) {
+        filtered = [{ ...startPoint, date: toIsoDate(startDate) }, ...filtered];
+      }
+
+      const lastFiltered = filtered[filtered.length - 1];
+      if (lastFiltered && toDate(lastFiltered.date) < anchorEnd) {
+        filtered = [...filtered, { ...lastKnownPoint, date: toIsoDate(anchorEnd) }];
+      }
+    } else if (previousPoint && (filtered.length === 0 || filtered[0].date !== previousPoint.date)) {
       filtered = [previousPoint, ...filtered];
     }
 
     // Garantia mínima para séries esparsas: expande a janela para trás só até
     // completar o mínimo do período escolhido, nunca para o histórico inteiro.
-    const minPoints = MIN_POINTS_BY_PERIOD[period];
+    const minPoints = isSelic ? 2 : MIN_POINTS_BY_PERIOD[period];
     if (filtered.length < minPoints) {
       const endIndex = fullHistory.findIndex((p) => p.date === filtered[filtered.length - 1]?.date);
       const sliceEnd = endIndex >= 0 ? endIndex + 1 : fullHistory.length;
