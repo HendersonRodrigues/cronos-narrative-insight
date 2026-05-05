@@ -55,7 +55,11 @@ export default function MarketChart({
   const [period, setPeriod] = useState<PeriodKey>("M");
 
   // 2. Consumo do Hook Otimizado (Backend-driven)
-  const { chartData, isLoading: loadingHistory, isError } = useMarketSnapshot(selected, period);
+  const { chartData, isLoading: loadingHistory, isError, error } = useMarketSnapshot(selected, period);
+
+  console.log("DEBUG - Ativo Selecionado:", selected);
+  console.log("DEBUG - Dados do Gráfico:", chartData);
+  if (isError) console.error("DEBUG - Erro do Supabase:", error);
 
   const active = selected;
   const meta = active ? getAssetMeta(active) : null;
