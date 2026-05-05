@@ -143,7 +143,7 @@ export default function MarketChart({ snapshots, isLoading: loadingSnapshots, de
         totalYears,
       },
     };
-  }, [fullHistory, period]);
+  }, [active, fullHistory, period]);
 
   if (loadingSnapshots || (loadingHistory && chartData.series.length === 0)) {
     return (
