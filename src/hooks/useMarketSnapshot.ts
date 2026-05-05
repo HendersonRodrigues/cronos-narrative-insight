@@ -4,9 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { formatDateBR } from "@/lib/format";
 
 interface DataPoint {
-  d: string; // Data ISO
-  v: number; // Valor Real
-  t?: number; // Valor de Tendência (SMA)
+  d: string;
+  v: number;
+  t?: number;
 }
 
 interface AnalyticsSnapshot {
@@ -19,10 +19,6 @@ const mapPeriodToGroup = (period: string): string => {
   return "long"; 
 };
 
-/**
- * Hook para consumo de Snapshots pré-processados (Backend-driven)
- * Substitui a lógica antiga de processamento pesado no frontend.
- */
 export function useMarketSnapshot(selected: string, period: string) {
   const query = useQuery({
     queryKey: ["market_snapshot", selected, mapPeriodToGroup(period)],
@@ -36,18 +32,28 @@ export function useMarketSnapshot(selected: string, period: string) {
         .eq("period_group", mapPeriodToGroup(period))
         .single();
 
-      if (error) throw error;
-      return (data as AnalyticsSnapshot).data_points;
+      if (error) return []; // Retorna array vazio se não encontrar
+      return (data as AnalyticsSnapshot).data_points || [];
     },
     staleTime: 1000 * 60 * 15,
     enabled: !!selected && !!period,
   });
 
   const chartData = useMemo(() => {
-    const rawPoints = query.data;
-    if (!rawPoints || rawPoints.length === 0) return { series: [], domain: [0, 0] };
-
+    // PROTEÇÃO: Garante que rawPoints seja sempre um array
+    const rawPoints = query.data ?? [];
+    
     const now = new Date();
+    const hojeStr = now.toISOString().split('T')[0];
+    
+    // Fallback para domínio caso não existam dados
+    if (rawPoints.length === 0) {
+      return { 
+        series: [], 
+        domain: [Date.now() - 86400000, Date.now()] 
+      };
+    }
+
     const periodsMap: Record<string, number> = {
       "M": 30, "6M": 180, "Y": 365, "3Y": 1095, "5Y": 1825, "10Y": 3650
     };
@@ -56,17 +62,11 @@ export function useMarketSnapshot(selected: string, period: string) {
     const startDate = new Date();
     startDate.setDate(now.getDate() - daysLimit);
     const startDateStr = startDate.toISOString().split('T')[0];
-    const hojeStr = now.toISOString().split('T')[0];
 
-    const rawPoints = query.data ?? []; // Garante que nunca seja null/undefined
-    if (rawPoints.length === 0) {
-      return { series: [], domain: [Date.now() - 86400000, Date.now()] };
-    }
-
-    // Recorte do período dentro do snapshot
+    // Recorte do período
     let points = rawPoints.filter((p) => p.d >= startDateStr);
 
-    // Lógica de Bordas para Selic/IPCA e Continuidade
+    // Lógica de Bordas
     if (points.length > 0) {
       const firstPoint = points[0];
       const lastPoint = points[points.length - 1];
@@ -79,7 +79,8 @@ export function useMarketSnapshot(selected: string, period: string) {
       if (lastPoint.d < hojeStr) {
         points.push({ ...lastPoint, d: hojeStr });
       }
-    } else if (rawPoints.length > 0) {
+    } else {
+      // Se não há dados no recorte, estica o último conhecido
       const lastKnown = rawPoints[rawPoints.length - 1];
       points = [
         { ...lastKnown, d: startDateStr },
@@ -91,8 +92,7 @@ export function useMarketSnapshot(selected: string, period: string) {
       timestamp: new Date(`${p.d}T12:00:00`).getTime(),
       value: p.v,
       trend: p.t ?? p.v,
-      label: formatDateBR(p.d),
-      dateStr: p.d
+      label: formatDateBR(p.d)
     }));
 
     return {
@@ -104,8 +104,5 @@ export function useMarketSnapshot(selected: string, period: string) {
     };
   }, [query.data, period, selected]);
 
-  return {
-    ...query,
-    chartData,
-  };
+  return { ...query, chartData };
 }
