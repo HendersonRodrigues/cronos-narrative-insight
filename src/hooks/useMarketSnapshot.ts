@@ -30,9 +30,9 @@ export function useMarketSnapshot(selected: string, period: string) {
         .select("data_points")
         .eq("asset_id", selected)
         .eq("period_group", mapPeriodToGroup(period))
-        .single();
+        .maybeSingle(); // maybeSingle evita erro caso a linha não exista
 
-      if (error) return []; // Retorna array vazio se não encontrar
+      if (error || !data) return [];
       return (data as AnalyticsSnapshot).data_points || [];
     },
     staleTime: 1000 * 60 * 15,
@@ -40,9 +40,7 @@ export function useMarketSnapshot(selected: string, period: string) {
   });
 
   const chartData = useMemo(() => {
-    // PROTEÇÃO: Garante que rawPoints seja sempre um array
     const rawPoints = query.data ?? [];
-    
     const now = new Date();
     const hojeStr = now.toISOString().split('T')[0];
     
@@ -50,7 +48,8 @@ export function useMarketSnapshot(selected: string, period: string) {
     if (rawPoints.length === 0) {
       return { 
         series: [], 
-        domain: [Date.now() - 86400000, Date.now()] 
+        domain: [Date.now() - 86400000, Date.now()],
+        isEmpty: true 
       };
     }
 
@@ -66,8 +65,14 @@ export function useMarketSnapshot(selected: string, period: string) {
     // Recorte do período
     let points = rawPoints.filter((p) => p.d >= startDateStr);
 
-    // Lógica de Bordas
-    if (points.length > 0) {
+    if (points.length === 0 && rawPoints.length > 0) {
+      const lastKnown = rawPoints[rawPoints.length - 1];
+      points = [
+        { ...lastKnown, d: startDateStr },
+        { ...lastKnown, d: hojeStr }
+      ];
+    } else if (points.length > 0) {
+      // Lógica de Bordas
       const firstPoint = points[0];
       const lastPoint = points[points.length - 1];
 
@@ -79,28 +84,28 @@ export function useMarketSnapshot(selected: string, period: string) {
       if (lastPoint.d < hojeStr) {
         points.push({ ...lastPoint, d: hojeStr });
       }
-    } else {
-      // Se não há dados no recorte, estica o último conhecido
-      const lastKnown = rawPoints[rawPoints.length - 1];
-      points = [
-        { ...lastKnown, d: startDateStr },
-        { ...lastKnown, d: hojeStr }
-      ];
     }
 
-    const series = points.map((p) => ({
-      timestamp: new Date(`${p.d}T12:00:00`).getTime(),
-      value: p.v,
-      trend: p.t ?? p.v,
-      label: formatDateBR(p.d)
-    }));
+    // Mapeamento com conversão segura de data
+    const series = points.map((p) => {
+      const [year, month, day] = p.d.split('-').map(Number);
+      const date = new Date(year, month - 1, day, 12, 0, 0);
+
+      return {
+        timestamp: date.getTime(),
+        value: Number(p.v || 0),
+        trend: Number(p.t ?? p.v || 0),
+        label: formatDateBR(p.d)
+      };
+    });
 
     return {
       series,
       domain: [
-        new Date(`${startDateStr}T12:00:00`).getTime(),
-        new Date(`${hojeStr}T12:00:00`).getTime()
-      ]
+        new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0).getTime(),
+        new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0).getTime()
+      ],
+      isEmpty: series.length === 0
     };
   }, [query.data, period, selected]);
 
