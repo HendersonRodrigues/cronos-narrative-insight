@@ -16,12 +16,13 @@ import { useMarketSnapshot } from "@/hooks/useMarketSnapshot";
 import { TrendingUp, CircleAlert as AlertCircle, Loader as Loader2 } from "lucide-react";
 
 interface MarketChartProps {
-  snapshots: any; // Mantido para compatibilidade, mas usaremos o Hook interno
+  snapshots: Record<string, any>; // Recebido do componente pai para listar ativos
   isLoading?: boolean;
   defaultAsset?: string;
 }
 
 type PeriodKey = "M" | "6M" | "Y" | "3Y" | "5Y" | "10Y";
+
 const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: "M", label: "1M" },
   { key: "6M", label: "6M" },
@@ -31,6 +32,9 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: "10Y", label: "10Y" },
 ];
 
+/**
+ * Formata os ticks do eixo X de acordo com a densidade do período
+ */
 const formatAxisTick = (timestamp: number, period: PeriodKey) => {
   const date = new Date(timestamp);
   if (period === "M") {
@@ -39,24 +43,33 @@ const formatAxisTick = (timestamp: number, period: PeriodKey) => {
   return date.toLocaleDateString("pt-BR", { month: "2-digit", year: "2-digit" });
 };
 
-export default function MarketChart({ snapshots: initialSnapshots, isLoading: loadingSnapshots, defaultAsset }: MarketChartProps) {
-  const available = Object.keys(initialSnapshots || {});
-  const [selected, setSelected] = useState(defaultAsset || available[0] || "selic");
+export default function MarketChart({ 
+  snapshots: initialSnapshots = {}, 
+  isLoading: loadingSnapshots, 
+  defaultAsset 
+}: MarketChartProps) {
+  
+  // 1. Estados de Seleção
+  const available = useMemo(() => Object.keys(initialSnapshots || {}), [initialSnapshots]);
+  const [selected, setSelected] = useState(defaultAsset || (available.length > 0 ? available[0] : "selic"));
   const [period, setPeriod] = useState<PeriodKey>("M");
 
-  // Novo Hook que consome os snapshots pré-processados do Backend
-  const { chartData, isLoading: loadingHistory } = useMarketSnapshot(selected, period);
+  // 2. Consumo do Hook Otimizado (Backend-driven)
+  const { chartData, isLoading: loadingHistory, isError } = useMarketSnapshot(selected, period);
 
   const active = selected;
   const meta = active ? getAssetMeta(active) : null;
   const isRateAsset = active === "selic" || active === "ipca";
 
-  // Sincroniza o ativo selecionado se o default mudar
+  // Sincroniza o ativo selecionado caso o defaultAsset mude externamente
   useEffect(() => {
-    if (defaultAsset) setSelected(defaultAsset);
-  }, [defaultAsset]);
+    if (defaultAsset && available.includes(defaultAsset)) {
+      setSelected(defaultAsset);
+    }
+  }, [defaultAsset, available]);
 
-  if (loadingSnapshots || (loadingHistory && chartData.series.length === 0)) {
+  // 3. Renderização de Loading Inicial
+  if (loadingSnapshots || (loadingHistory && (!chartData || chartData.series.length === 0))) {
     return (
       <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -68,9 +81,22 @@ export default function MarketChart({ snapshots: initialSnapshots, isLoading: lo
     );
   }
 
+  // 4. Renderização de Estado de Erro ou Vazio
+  if (isError || !chartData || chartData.series.length === 0) {
+    return (
+      <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+        <AlertCircle className="h-10 w-10 text-muted-foreground/40 mb-3" />
+        <p className="text-sm font-medium text-foreground">Histórico indisponível</p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
+          Os dados para {meta?.label || selected} ainda não foram processados pelo backend.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-border/60 bg-card/60 backdrop-blur-sm p-5">
-      {/* HEADER: Seleção de Ativos */}
+      {/* HEADER: Identificação e Troca de Ativo */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
@@ -78,7 +104,7 @@ export default function MarketChart({ snapshots: initialSnapshots, isLoading: lo
           </div>
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Histórico
+              Histórico de Mercado
             </p>
             <p className="font-display text-sm font-semibold text-foreground">
               {meta?.label ?? "—"}
@@ -104,7 +130,7 @@ export default function MarketChart({ snapshots: initialSnapshots, isLoading: lo
         </div>
       </div>
 
-      {/* TABS: Períodos */}
+      {/* TABS: Seleção de Período */}
       <div className="mb-3 flex flex-wrap items-center justify-end gap-1">
         {PERIODS.map((p) => (
           <button
@@ -122,14 +148,8 @@ export default function MarketChart({ snapshots: initialSnapshots, isLoading: lo
         ))}
       </div>
 
-      {/* ÁREA DO GRÁFICO */}
+      {/* CONTAINER DO GRÁFICO */}
       <div className="h-64 w-full relative">
-        {loadingHistory && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/40 backdrop-blur-[1px]">
-             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        )}
-        
         <AnimatePresence mode="wait">
           <motion.div
             key={`${active}-${period}`}
@@ -148,7 +168,12 @@ export default function MarketChart({ snapshots: initialSnapshots, isLoading: lo
                   </linearGradient>
                 </defs>
                 
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                <CartesianGrid 
+                  stroke="hsl(var(--border))" 
+                  strokeDasharray="3 3" 
+                  opacity={0.2} 
+                  vertical={false} 
+                />
                 
                 <XAxis
                   dataKey="timestamp"
@@ -183,7 +208,7 @@ export default function MarketChart({ snapshots: initialSnapshots, isLoading: lo
                   formatter={(val: number) => [formatValue(active, val), "Valor"]}
                 />
 
-                {/* LINHA DE FUNDO: Valor Real (Oculta para Selic/IPCA) */}
+                {/* LINHA DE FUNDO: Valor Real (Sombra para ativos voláteis) */}
                 {!isRateAsset && (
                   <Line
                     type="monotone"
