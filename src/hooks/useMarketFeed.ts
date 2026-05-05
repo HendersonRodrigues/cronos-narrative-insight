@@ -6,44 +6,45 @@ import {
   reportIntegrationError,
 } from "@/services/integrationHealth";
 
+const HISTORY_START_DATE = "2015-01-01";
+
 /**
  * BUSCA 1: Feed Geral (Lightweight)
- * Traz apenas os registros mais recentes de todos os ativos para alimentar
- * os mini-cards de preço e variações na Home.
+ * Traz apenas os registros mais recentes para os mini-cards da Home.
  */
-async function fetchAssetHistory(assetId: string): Promise<MarketDataPoint[]> {
-  if (!supabase || !assetId) return [];
-
+async function fetchMarketFeed(): Promise<MarketDataPoint[]> {
+  if (!supabase) throw new Error("Supabase não configurado");
+  
+  // Aumentamos para 2500 para garantir que pegamos os dados recentes de todos os ativos
   const { data, error } = await supabase
     .from("market_data")
     .select("*")
-    .eq("asset_id", assetId)
-    .gte("date", HISTORY_START_DATE)
-    .order("date", { ascending: true });
+    .order("date", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(2500); 
 
-  if (error) throw error;
-  const allData = (data as MarketDataPoint[] | null) ?? [];
-
-  // CORREÇÃO SELIC: Não agregue por mês! 
-  // O gráfico precisa de todos os pontos onde a taxa mudou para desenhar o degrau.
-  // Só filtramos duplicados na mesma data.
-  if (assetId === "selic") {
-    return allData.filter((point, index, self) => 
-      index === 0 || point.value !== self[index - 1].value || point.date !== self[index - 1].date
-    );
+  if (error) {
+    void reportIntegrationError("market_data", error, {
+      status_code: (error as { status?: number }).status ?? null,
+      context: { hint: "fetch market feed" },
+    });
+    throw error;
   }
 
-  return allData;
+  const rows = (data as MarketDataPoint[] | null) ?? [];
+  if (rows.length > 0) {
+    void logIntegrationEvent({
+      service_name: "market_data",
+      status: "ok",
+      context: { rows: rows.length },
+    });
+  }
+  return rows;
 }
-
-const HISTORY_START_DATE = "2015-01-01";
 
 /**
  * BUSCA 2: Histórico Profundo por Ativo (Lazy Loading)
  * Traz o histórico de um ativo específico sob demanda desde 2015.
- * - Para Selic diária muito densa: agrega por mês para preservar fluidez
- * - Para séries esparsas: preserva todos os pontos reais
- * Usado exclusivamente pelo MarketChart para análise de longo prazo.
  */
 async function fetchAssetHistory(assetId: string): Promise<MarketDataPoint[]> {
   if (!supabase) throw new Error("Supabase não configurado");
@@ -63,21 +64,11 @@ async function fetchAssetHistory(assetId: string): Promise<MarketDataPoint[]> {
 
   const allData = (data as MarketDataPoint[] | null) ?? [];
 
-  // Se a Selic vier diária, agrega por mês; se vier apenas nos eventos de
-  // alteração da taxa, mantém todos os pontos para não distorcer períodos.
-  if (assetId === "selic" && allData.length > 240) {
-    const monthlyData: Record<string, MarketDataPoint> = {};
-
-    for (const point of allData) {
-      // Extrair ano-mês (YYYY-MM)
-      const dateStr = point.date.substring(0, 7);
-      // Guardar o último ponto de cada mês
-      monthlyData[dateStr] = point;
-    }
-
-    // Converter de volta para array ordenado
-    return Object.values(monthlyData).sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+  // CORREÇÃO SELIC: Removemos a agregação mensal agressiva.
+  // Mantemos todos os pontos onde houve mudança de valor para desenhar os degraus.
+  if (assetId === "selic") {
+    return allData.filter((point, index, self) => 
+      index === 0 || point.value !== self[index - 1].value || point.date !== self[index - 1].date
     );
   }
 
@@ -89,7 +80,7 @@ export function useMarketFeed() {
   return useQuery({
     queryKey: ["market_data", "feed"],
     queryFn: fetchMarketFeed,
-    staleTime: 1000 * 60 * 2, // 2 minutos
+    staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
   });
 }
@@ -99,9 +90,9 @@ export function useAssetHistory(assetId: string | null) {
   return useQuery({
     queryKey: ["market_data", "history", assetId],
     queryFn: () => fetchAssetHistory(assetId!),
-    enabled: !!assetId, // Só dispara se houver um ID selecionado
-    staleTime: 1000 * 60 * 30, // 30 minutos (Buffer em memória)
-    gcTime: 1000 * 60 * 60, // Mantém no "cache de lixo" por 1 hora
+    enabled: !!assetId,
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
   });
 }
